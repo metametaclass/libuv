@@ -321,9 +321,9 @@ static void uv_poll(uv_loop_t* loop, DWORD timeout) {
     if(!rc){
        debug_print("uv_poll: gqcs error %d %d", GetLastError(), overlapped->Internal);
        //uv_fatal_error(GetLastError(), "GetQueuedCompletionStatus");
-    }
+    }    
     req = uv_overlapped_to_req(overlapped);
-    debug_print("uv_poll: gqcs: %d %p %d",req->type, req->data, key);
+    debug_print("uv_poll: gqcs: %d %p %d %d",req->type, req->data, key, bytes);
     uv_insert_pending_req(loop, req);
 
     /* Some time might have passed waiting for I/O,
@@ -362,7 +362,7 @@ static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
     for (i = 0; i < count; i++) {
       /* Package was dequeued */      
       req = uv_overlapped_to_req(overlappeds[i].lpOverlapped);
-      debug_print("gqcsEX: %d %p %d",req->type, req->data, overlappeds[i].lpCompletionKey);
+      debug_print("gqcsEX: %d %p %d %d",req->type, req->data, overlappeds[i].lpCompletionKey, overlappeds[i].dwNumberOfBytesTransferred);
       
       uv_insert_pending_req(loop, req);
     }
