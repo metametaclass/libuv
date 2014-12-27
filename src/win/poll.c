@@ -170,6 +170,7 @@ static void uv__fast_poll_process_poll_req(uv_loop_t* loop, uv_poll_t* handle,
     assert(0);
     return;
   }
+  debug_print("uv__fast_poll_process_poll_req: %d", req->overlapped.Internal);
 
   /* Report an error unless the select was just interrupted. */
   if (!REQ_SUCCESS(req)) {
@@ -181,6 +182,7 @@ static void uv__fast_poll_process_poll_req(uv_loop_t* loop, uv_poll_t* handle,
 
   } else if (afd_poll_info->NumberOfHandles >= 1) {
     unsigned char events = 0;
+    debug_print("uv__fast_poll_process_poll_req: events %8.8x", afd_poll_info->Handles[0].Events);
 
     if ((afd_poll_info->Handles[0].Events & (AFD_POLL_RECEIVE |
         AFD_POLL_DISCONNECT | AFD_POLL_ACCEPT | AFD_POLL_ABORT)) != 0) {
