@@ -220,7 +220,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
   ASSERT(events & context->events);
   ASSERT(!(events & ~context->events));
 
-  debug_print("connection_poll_cb: %d %s %p %d %d", context->sock, context->name, handle, status, events);
+  debug_print("connection_poll_cb: sock:%d name:%s handle:%p status:%d events:%d sent:%d read:%d", context->sock, context->name, handle, status, events, context->sent, context->read);
 
   new_events = context->events;
 
