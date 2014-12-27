@@ -67,3 +67,4 @@ ipch
 
 *.xcodeproj
 *.xcworkspace
+*.log
