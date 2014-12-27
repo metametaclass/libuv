@@ -32,7 +32,7 @@
 #include "task.h"
 
 
-#define NUM_CLIENTS 5
+#define NUM_CLIENTS 1
 #define TRANSFER_BYTES (1 << 16)
 
 #undef MIN
@@ -182,7 +182,7 @@ static connection_context_t* create_connection_context(
 static void connection_close_cb(uv_handle_t* handle) {
   connection_context_t* context = (connection_context_t*) handle->data;
 
-  debug_print("connection_close_cb: %p %d %d", handle, context->read, context->sent);
+  debug_print("connection_close_cb: %d %p %d %d", context->sock, handle, context->read, context->sent);
 
   if (--context->open_handles == 0) {
     if (test_mode == DUPLEX || context->is_server_connection) {
@@ -220,7 +220,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
   ASSERT(events & context->events);
   ASSERT(!(events & ~context->events));
 
-  debug_print("connection_poll_cb: %p %d %d", handle, status, events);
+  debug_print("connection_poll_cb: %d %s %p %d %d", context->sock, context->name, handle, status, events);
 
   new_events = context->events;
 
@@ -404,7 +404,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
 
   if (context->got_fin && context->sent_fin) {
     /* Sent and received FIN. Close and destroy context. */
-    debug_print("close_socket: %s %p", context->name, context);
+    debug_print("close_socket: %d %s %p", context->sock, context->name, context);
     close_socket(context->sock);
     destroy_connection_context(context);
     context->events = 0;
@@ -428,7 +428,7 @@ static void delay_timer_cb(uv_timer_t* timer) {
   connection_context_t* context = (connection_context_t*) timer->data;
   int r;
 
-  debug_print("delay_timer_cb: %p", context);
+  debug_print("delay_timer_cb: %d %p", context->sock, context);
 
   /* Timer should auto stop. */
   ASSERT(0 == uv_is_active((uv_handle_t*) timer));
@@ -466,13 +466,13 @@ static server_context_t* create_server_context(
 
 static void server_close_cb(uv_handle_t* handle) {  
   server_context_t* context = (server_context_t*) handle->data;
-  debug_print("server_close_cb: %p", handle);
+  debug_print("server_close_cb: %d %p", context->sock, handle);
   free(context);
 }
 
 
 static void destroy_server_context(server_context_t* context) {
-  debug_print("destroy_server_context: %p", context);
+  debug_print("destroy_server_context: %d %p", context->sock, context);
   uv_close((uv_handle_t*) &context->poll_handle, server_close_cb);
 }
 
@@ -486,7 +486,7 @@ static void server_poll_cb(uv_poll_t* handle, int status, int events) {
   uv_os_sock_t sock;
   int r;
 
-  debug_print("server_poll_cb: %p %d %d", handle, status, events);
+  debug_print("server_poll_cb: %d %p %d %d", server_context->sock,  handle, status, events);
 
   addr_len = sizeof addr;
   sock = accept(server_context->sock, (struct sockaddr*) &addr, &addr_len);
