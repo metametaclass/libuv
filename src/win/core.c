@@ -31,6 +31,7 @@
 #endif
 
 #include "uv.h"
+#include "debug.h"
 #include "internal.h"
 #include "handle-inl.h"
 #include "req-inl.h"
@@ -307,6 +308,7 @@ static void uv_poll(uv_loop_t* loop, DWORD timeout) {
   ULONG_PTR key;
   OVERLAPPED* overlapped;
   uv_req_t* req;
+  debug_print("uv_poll: %d", timeout);
 
   GetQueuedCompletionStatus(loop->iocp,
                             &bytes,
@@ -317,6 +319,7 @@ static void uv_poll(uv_loop_t* loop, DWORD timeout) {
   if (overlapped) {
     /* Package was dequeued */
     req = uv_overlapped_to_req(overlapped);
+    debug_print("gqcs: %d %p %d",req->type, req->data, key);
     uv_insert_pending_req(loop, req);
 
     /* Some time might have passed waiting for I/O,
@@ -342,6 +345,8 @@ static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
   ULONG count;
   ULONG i;
 
+  debug_print("uv_poll_ex: %d", timeout);
+
   success = pGetQueuedCompletionStatusEx(loop->iocp,
                                          overlappeds,
                                          ARRAY_SIZE(overlappeds),
@@ -351,8 +356,10 @@ static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
 
   if (success) {
     for (i = 0; i < count; i++) {
-      /* Package was dequeued */
+      /* Package was dequeued */      
       req = uv_overlapped_to_req(overlappeds[i].lpOverlapped);
+      debug_print("gqcsEX: %d %p %d",req->type, req->data, overlappeds[i].lpCompletionKey);
+      
       uv_insert_pending_req(loop, req);
     }
 
@@ -400,6 +407,7 @@ int uv_run(uv_loop_t *loop, uv_run_mode mode) {
     uv_update_time(loop);
 
   while (r != 0 && loop->stop_flag == 0) {
+    debug_print("uv_run loop");
     uv_update_time(loop);
     uv_process_timers(loop);
 
