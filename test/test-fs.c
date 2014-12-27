@@ -575,7 +575,7 @@ TEST_IMPL(fs_file_loop) {
    * Starting with vista they are supported, but only when elevated, otherwise
    * we'll see UV_EPERM.
    */
-  if (r == UV_ENOTSUP || r == UV_EPERM)
+  if (r == UV_ENOTSUP || r == UV_EPERM || r == UV_ENOSYS)
     return 0;
 #endif
   ASSERT_IS_ZERO(r);
@@ -1506,7 +1506,7 @@ TEST_IMPL(fs_symlink) {
   r = uv_fs_symlink(loop, &req, "test_file", "test_file_symlink", 0, NULL);
 #ifdef _WIN32
   if (r < 0) {
-    if (r == UV_ENOTSUP) {
+    if (r == UV_ENOTSUP || r == UV_ENOSYS) {
       /*
        * Windows doesn't support symlinks on older versions.
        * We just pass the test and bail out early if we get ENOTSUP.
