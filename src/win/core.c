@@ -308,18 +308,22 @@ static void uv_poll(uv_loop_t* loop, DWORD timeout) {
   ULONG_PTR key;
   OVERLAPPED* overlapped;
   uv_req_t* req;
+  BOOL rc;
   debug_print("uv_poll: %d", timeout);
 
-  GetQueuedCompletionStatus(loop->iocp,
+  rc = GetQueuedCompletionStatus(loop->iocp,
                             &bytes,
                             &key,
                             &overlapped,
-                            timeout);
-
+                            timeout);    
   if (overlapped) {
     /* Package was dequeued */
+    if(!rc){
+       debug_print("uv_poll: gqcs error %d %d", GetLastError(), overlapped->Internal);
+       //uv_fatal_error(GetLastError(), "GetQueuedCompletionStatus");
+    }
     req = uv_overlapped_to_req(overlapped);
-    debug_print("gqcs: %d %p %d",req->type, req->data, key);
+    debug_print("uv_poll: gqcs: %d %p %d",req->type, req->data, key);
     uv_insert_pending_req(loop, req);
 
     /* Some time might have passed waiting for I/O,
