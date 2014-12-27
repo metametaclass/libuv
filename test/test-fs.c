@@ -578,7 +578,7 @@ TEST_IMPL(fs_file_loop) {
   if (r == UV_ENOTSUP || r == UV_EPERM)
     return 0;
 #endif
-  ASSERT(r == 0);
+  ASSERT_IS_ZERO(r);
   uv_fs_req_cleanup(&req);
 
   r = uv_fs_open(loop, &req, "test_symlink", O_RDONLY, 0, NULL);
@@ -587,7 +587,7 @@ TEST_IMPL(fs_file_loop) {
   uv_fs_req_cleanup(&req);
 
   r = uv_fs_open(loop, &req, "test_symlink", O_RDONLY, 0, open_loop_cb);
-  ASSERT(r == 0);
+  ASSERT_IS_ZERO(r);
 
   ASSERT(open_cb_count == 0);
   uv_run(loop, UV_RUN_DEFAULT);

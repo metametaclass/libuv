@@ -116,6 +116,21 @@ typedef enum {
   }                                                       \
  } while (0)
 
+
+#define ASSERT_IS_ZERO(expr)                                      \
+ do {                                                     \
+  if ((expr)!=0) {                                          \
+    fprintf(stderr,                                       \
+            "Assertion %d=0 failed in %s on line %d: %s\n",    \
+            expr,                                         \
+            __FILE__,                                     \
+            __LINE__,                                     \
+            #expr);                                       \
+    abort();                                              \
+  }                                                       \
+ } while (0)
+
+
 /* This macro cleans up the main loop. This is used to avoid valgrind
  * warnings about memory being "leaked" by the main event loop.
  */
