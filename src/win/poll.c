@@ -23,6 +23,7 @@
 #include <io.h>
 
 #include "uv.h"
+#include "debug.h"
 #include "internal.h"
 #include "handle-inl.h"
 #include "req-inl.h"
