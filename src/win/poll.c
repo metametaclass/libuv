@@ -549,9 +549,11 @@ int uv_poll_init_socket(uv_loop_t* loop, uv_poll_t* handle,
   if (peer_socket != INVALID_SOCKET) {
     /* Initialize fast poll specific fields. */
     handle->peer_socket = peer_socket;
+    debug_print("use FAST poll");
   } else {
     /* Initialize slow poll specific fields. */
     handle->flags |= UV_HANDLE_POLL_SLOW;
+    debug_print("use SLOW poll");
   }
 
   /* Initialize 2 poll reqs. */
