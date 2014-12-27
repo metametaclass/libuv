@@ -28,6 +28,7 @@
 #endif
 
 #include "uv.h"
+#include "debug.h"
 #include "task.h"
 
 
@@ -43,6 +44,8 @@ typedef enum {
   DUPLEX
 } test_mode_t;
 
+
+
 typedef struct connection_context_s {
   uv_poll_t poll_handle;
   uv_timer_t timer_handle;
@@ -52,6 +55,7 @@ typedef struct connection_context_s {
   int open_handles;
   int got_fin, sent_fin;
   unsigned int events, delayed_events;
+  char *name;
 } connection_context_t;
 
 typedef struct server_context_s {
@@ -159,6 +163,7 @@ static connection_context_t* create_connection_context(
   context->delayed_events = 0;
   context->got_fin = 0;
   context->sent_fin = 0;
+  context->name = is_server_connection?"server":"client";
 
   r = uv_poll_init_socket(uv_default_loop(), &context->poll_handle, sock);
   context->open_handles++;
@@ -176,6 +181,8 @@ static connection_context_t* create_connection_context(
 
 static void connection_close_cb(uv_handle_t* handle) {
   connection_context_t* context = (connection_context_t*) handle->data;
+
+  debug_print("connection_close_cb: %p %d %d", handle, context->read, context->sent);
 
   if (--context->open_handles == 0) {
     if (test_mode == DUPLEX || context->is_server_connection) {
@@ -198,6 +205,7 @@ static void connection_close_cb(uv_handle_t* handle) {
 
 
 static void destroy_connection_context(connection_context_t* context) {
+  debug_print("destroy_connection_context: %p %s", context, context->name);
   uv_close((uv_handle_t*) &context->poll_handle, connection_close_cb);
   uv_close((uv_handle_t*) &context->timer_handle, connection_close_cb);
 }
@@ -211,6 +219,8 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
   ASSERT(status == 0);
   ASSERT(events & context->events);
   ASSERT(!(events & ~context->events));
+
+  debug_print("connection_poll_cb: %p %d %d", handle, status, events);
 
   new_events = context->events;
 
@@ -394,6 +404,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
 
   if (context->got_fin && context->sent_fin) {
     /* Sent and received FIN. Close and destroy context. */
+    debug_print("close_socket: %s %p", context->name, context);
     close_socket(context->sock);
     destroy_connection_context(context);
     context->events = 0;
@@ -416,6 +427,8 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
 static void delay_timer_cb(uv_timer_t* timer) {
   connection_context_t* context = (connection_context_t*) timer->data;
   int r;
+
+  debug_print("delay_timer_cb: %p", context);
 
   /* Timer should auto stop. */
   ASSERT(0 == uv_is_active((uv_handle_t*) timer));
@@ -451,13 +464,15 @@ static server_context_t* create_server_context(
 }
 
 
-static void server_close_cb(uv_handle_t* handle) {
+static void server_close_cb(uv_handle_t* handle) {  
   server_context_t* context = (server_context_t*) handle->data;
+  debug_print("server_close_cb: %p", handle);
   free(context);
 }
 
 
 static void destroy_server_context(server_context_t* context) {
+  debug_print("destroy_server_context: %p", context);
   uv_close((uv_handle_t*) &context->poll_handle, server_close_cb);
 }
 
@@ -470,6 +485,8 @@ static void server_poll_cb(uv_poll_t* handle, int status, int events) {
   socklen_t addr_len;
   uv_os_sock_t sock;
   int r;
+
+  debug_print("server_poll_cb: %p %d %d", handle, status, events);
 
   addr_len = sizeof addr;
   sock = accept(server_context->sock, (struct sockaddr*) &addr, &addr_len);
@@ -489,6 +506,7 @@ static void server_poll_cb(uv_poll_t* handle, int status, int events) {
   ASSERT(r == 0);
 
   if (++server_context->connections == NUM_CLIENTS) {
+    debug_print("close_socket: server %s %p", connection_context->name, server_context);
     close_socket(server_context->sock);
     destroy_server_context(server_context);
   }
@@ -500,6 +518,8 @@ static void start_server(void) {
   struct sockaddr_in addr;
   uv_os_sock_t sock;
   int r;
+
+  debug_print("start_server");
 
   ASSERT(0 == uv_ip4_addr("127.0.0.1", TEST_PORT, &addr));
   sock = create_nonblocking_bound_socket(addr);
@@ -519,6 +539,7 @@ static void start_client(void) {
   struct sockaddr_in server_addr;
   struct sockaddr_in addr;
   int r;
+  debug_print("start_client");
 
   ASSERT(0 == uv_ip4_addr("127.0.0.1", TEST_PORT, &server_addr));
   ASSERT(0 == uv_ip4_addr("0.0.0.0", 0, &addr));
@@ -547,12 +568,14 @@ static void start_poll_test(void) {
     ASSERT(r == 0);
   }
 #endif
+  debug_print("start_poll_test");
 
   start_server();
 
   for (i = 0; i < NUM_CLIENTS; i++)
     start_client();
 
+  debug_print("start_poll_test uv_run");
   r = uv_run(uv_default_loop(), UV_RUN_DEFAULT);
   ASSERT(r == 0);
 
