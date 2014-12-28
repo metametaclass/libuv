@@ -30,6 +30,7 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include "debug.h"
 
 #if defined(_MSC_VER) && _MSC_VER < 1600
 # include "stdint-msvc2008.h"
@@ -135,12 +136,14 @@ void uv__fs_scandir_cleanup(uv_fs_t* req);
 
 #define uv__active_handle_add(h)                                              \
   do {                                                                        \
+    debug_print("uv__active_handle_add: %p %d", (h), (h)->type);                  \
     (h)->loop->active_handles++;                                              \
   }                                                                           \
   while (0)
 
 #define uv__active_handle_rm(h)                                               \
   do {                                                                        \
+    debug_print("uv__active_handle_rm: %p %d", (h), (h)->type);                   \
     (h)->loop->active_handles--;                                              \
   }                                                                           \
   while (0)
