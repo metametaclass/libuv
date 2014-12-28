@@ -77,6 +77,7 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   uv_req_t* req;
   AFD_POLL_INFO* afd_poll_info;
   DWORD result;
+  debug_print("uv__fast_poll_submit_poll_req: time:%llu", loop->time);
 
   /* Find a yet unsubmitted req to submit. */
   if (handle->submitted_events_1 == 0) {
@@ -130,6 +131,7 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
 static int uv__fast_poll_cancel_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   AFD_POLL_INFO afd_poll_info;
   DWORD result;
+  debug_print("uv__fast_poll_cancel_poll_req: time:%llu", loop->time);
 
   afd_poll_info.Exclusive = TRUE;
   afd_poll_info.NumberOfHandles = 1;
