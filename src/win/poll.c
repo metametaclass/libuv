@@ -170,7 +170,7 @@ static void uv__fast_poll_process_poll_req(uv_loop_t* loop, uv_poll_t* handle,
     assert(0);
     return;
   }
-  debug_print("uv__fast_poll_process_poll_req: %d", req->overlapped.Internal);
+  debug_print("uv__fast_poll_process_poll_req: time:%llu req->overlapped.Internal:%d", loop->time, req->overlapped.Internal);
 
   /* Report an error unless the select was just interrupted. */
   if (!REQ_SUCCESS(req)) {
