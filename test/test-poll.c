@@ -226,6 +226,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
 
   if (events & UV_READABLE) {
     int action = rand() % 7;
+    debug_print("readable: action %d", action);
 
     switch (action) {
       case 0:
@@ -239,6 +240,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
           context->read += r;
         } else {
           /* Got FIN. */
+          debug_print("read: got FIN %s %d", context->name, context->sock);
           context->got_fin = 1;
           new_events &= ~UV_READABLE;
         }
@@ -251,6 +253,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
         /* Read until EAGAIN. */
         static char buffer[931];
         r = recv(context->sock, buffer, sizeof buffer, 0);
+        debug_print("recv: %d", WSAGetLastError());
         ASSERT(r >= 0);
 
         while (r > 0) {
@@ -260,6 +263,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
 
         if (r == 0) {
           /* Got FIN. */
+          debug_print("read: got FIN %s %d", context->name, context->sock);
           context->got_fin = 1;
           new_events &= ~UV_READABLE;
         } else {
@@ -301,6 +305,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
         !(test_mode == UNIDIRECTIONAL && context->is_server_connection)) {
       /* We have to send more bytes. */
       int action = rand() % 7;
+      debug_print("writable: action %d", action);
 
       switch (action) {
         case 0:
@@ -390,7 +395,8 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
 
     } else {
       /* Nothing more to write. Send FIN. */
-      int r;
+      int r = 0;
+      debug_print("shutdown: %s %d", context->name, context->sock);
 #ifdef _WIN32
       r = shutdown(context->sock, SD_SEND);
 #else
@@ -410,6 +416,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
     context->events = 0;
 
   } else if (new_events != context->events) {
+    debug_print("restart poll");
     /* Poll mask changed. Call uv_poll_start again. */
     context->events = new_events;
     uv_poll_start(handle, new_events, connection_poll_cb);
