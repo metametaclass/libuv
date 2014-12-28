@@ -264,6 +264,8 @@ TEST_DECLARE   (thread_equal)
 TEST_DECLARE   (dlerror)
 TEST_DECLARE   (poll_duplex)
 TEST_DECLARE   (poll_unidirectional)
+TEST_DECLARE   (poll_minimal)
+TEST_DECLARE   (poll_minimal_eagain)
 TEST_DECLARE   (poll_close)
 
 TEST_DECLARE   (ip4_addr)
@@ -534,6 +536,8 @@ TASK_LIST_START
 
   TEST_ENTRY  (poll_duplex)
   TEST_ENTRY  (poll_unidirectional)
+  TEST_ENTRY  (poll_minimal)
+  TEST_ENTRY  (poll_minimal_eagain)
   TEST_ENTRY  (poll_close)
 
   TEST_ENTRY  (socket_buffer_size)

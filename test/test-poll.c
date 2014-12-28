@@ -32,7 +32,6 @@
 #include "task.h"
 
 
-#define NUM_CLIENTS 1
 #define TRANSFER_BYTES (1 << 16)
 
 #undef MIN
@@ -71,6 +70,10 @@ static void delay_timer_cb(uv_timer_t* timer);
 static test_mode_t test_mode = DUPLEX;
 
 static int closed_connections = 0;
+
+static int max_action = 7;
+static int num_clients = 5;
+static int need_send_eagain = 1;
 
 static int valid_writable_wakeups = 0;
 static int spurious_writable_wakeups = 0;
@@ -227,7 +230,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
   new_events = context->events;
 
   if (events & UV_READABLE) {
-    int action = rand() % 7;
+    int action = rand() % max_action;
     debug_print("readable: action %d", action);
 
     switch (action) {
@@ -236,14 +239,14 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
         /* Read a couple of bytes. */
         static char buffer[74];
         r = recv(context->sock, buffer, sizeof buffer, 0);
-        debug_print("recv: 1 %d %d", r, WSAGetLastError());
+        debug_print("recv: a1 %d/%d %d", r, sizeof buffer, WSAGetLastError());
         ASSERT(r >= 0);
 
         if (r > 0) {
           context->read += r;
         } else {
           /* Got FIN. */
-          debug_print("read: got FIN %s %d", context->name, context->sock);
+          debug_print("read: a1 got FIN %s %d", context->name, context->sock);
           context->got_fin = 1;
           new_events &= ~UV_READABLE;
         }
@@ -256,18 +259,18 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
         /* Read until EAGAIN. */
         static char buffer[931];
         r = recv(context->sock, buffer, sizeof buffer, 0);
-        debug_print("recv: 2 %d %d", r, WSAGetLastError());
+        debug_print("recv: a2 %d/%d %d", r, sizeof buffer, WSAGetLastError());
         ASSERT(r >= 0);
-
+       
         while (r > 0) {
           context->read += r;
           r = recv(context->sock, buffer, sizeof buffer, 0);
-          debug_print("recv: 3 %d %d", r, WSAGetLastError());
+          debug_print("recv: a2e %d/%d %d", r, sizeof buffer, WSAGetLastError());
         }
 
         if (r == 0) {
           /* Got FIN. */
-          debug_print("read: got FIN %s %d", context->name, context->sock);
+          debug_print("read: a2 got FIN %s %d", context->name, context->sock);
           context->got_fin = 1;
           new_events &= ~UV_READABLE;
         } else {
@@ -308,7 +311,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
     if (context->sent < TRANSFER_BYTES &&
         !(test_mode == UNIDIRECTIONAL && context->is_server_connection)) {
       /* We have to send more bytes. */
-      int action = rand() % 7;
+      int action = rand() % max_action;
       debug_print("writable: action %d", action);
 
       switch (action) {
@@ -321,6 +324,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
           ASSERT(send_bytes > 0);
 
           r = send(context->sock, buffer, send_bytes, 0);
+          debug_print("send: a1 %d %d", r, send_bytes, WSAGetLastError());
 
           if (r < 0) {
             ASSERT(got_eagain());
@@ -343,6 +347,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
           ASSERT(send_bytes > 0);
 
           r = send(context->sock, buffer, send_bytes, 0);
+          debug_print("send: a2 %d %d", r, send_bytes, WSAGetLastError());
 
           if (r < 0) {
             ASSERT(got_eagain());
@@ -354,14 +359,17 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
           valid_writable_wakeups++;
           context->sent += r;
 
-          while (context->sent < TRANSFER_BYTES) {
-            send_bytes = MIN(TRANSFER_BYTES - context->sent, sizeof buffer);
-            ASSERT(send_bytes > 0);
+          if(need_send_eagain){
+              while (context->sent < TRANSFER_BYTES) {
+                send_bytes = MIN(TRANSFER_BYTES - context->sent, sizeof buffer);            
+                ASSERT(send_bytes > 0);
 
-            r = send(context->sock, buffer, send_bytes, 0);
+                r = send(context->sock, buffer, send_bytes, 0);
+                debug_print("send: a2e %d %d", r, send_bytes, WSAGetLastError());
 
-            if (r <= 0) break;
-            context->sent += r;
+                if (r <= 0) break;
+                context->sent += r;
+              }
           }
           ASSERT(r > 0 || got_eagain());
           break;
@@ -518,7 +526,7 @@ static void server_poll_cb(uv_poll_t* handle, int status, int events) {
                     connection_poll_cb);
   ASSERT(r == 0);
 
-  if (++server_context->connections == NUM_CLIENTS) {
+  if (++server_context->connections == num_clients) {
     debug_print("close_socket: server %s %p", connection_context->name, server_context);
     close_socket(server_context->sock);
     destroy_server_context(server_context);
@@ -585,7 +593,7 @@ static void start_poll_test(void) {
 
   start_server();
 
-  for (i = 0; i < NUM_CLIENTS; i++)
+  for (i = 0; i < num_clients; i++)
     start_client();
 
   debug_print("start_poll_test uv_run");
@@ -597,7 +605,7 @@ static void start_poll_test(void) {
          (valid_writable_wakeups + spurious_writable_wakeups) /
          spurious_writable_wakeups > 20);
 
-  ASSERT(closed_connections == NUM_CLIENTS * 2);
+  ASSERT(closed_connections == num_clients * 2);
 
   MAKE_VALGRIND_HAPPY();
 }
@@ -612,6 +620,26 @@ TEST_IMPL(poll_duplex) {
 
 TEST_IMPL(poll_unidirectional) {
   test_mode = UNIDIRECTIONAL;
+  start_poll_test();
+  return 0;
+}
+
+
+TEST_IMPL(poll_minimal) {
+  test_mode = UNIDIRECTIONAL;
+  num_clients = 1;
+  max_action = 4;
+  need_send_eagain = 0;
+  start_poll_test();
+  return 0;
+}
+
+
+TEST_IMPL(poll_minimal_eagain) {
+  test_mode = UNIDIRECTIONAL;
+  num_clients = 1;
+  max_action = 4;
+  need_send_eagain = 1;
   start_poll_test();
   return 0;
 }
