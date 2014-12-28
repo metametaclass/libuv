@@ -120,6 +120,7 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
                          afd_poll_info,
                          afd_poll_info,
                          &req->overlapped);
+  debug_print("uv__fast_poll_submit_poll_req: result:%d wsaerror:%d", result, WSAGetLastError());
   if (result != 0 && WSAGetLastError() != WSA_IO_PENDING) {
     /* Queue this req, reporting an error. */
     SET_REQ_ERROR(req, WSAGetLastError());
