@@ -322,7 +322,7 @@ static void uv_poll(uv_loop_t* loop, DWORD timeout) {
        debug_print("uv_poll: gqcs error %d %8.8x", GetLastError(), overlapped->Internal);
     }    
     req = uv_overlapped_to_req(overlapped);
-    debug_print("uv_poll: gqcs: time:%llu type:%d data:%p key:%d bytes:%d internal:%8.8x", loop->time, req->type, req->data, key, bytes, overlapped->Internal);
+    debug_print("uv_poll: gqcs: type:%d data:%p key:%d bytes:%d internal:%8.8x", req->type, req->data, key, bytes, overlapped->Internal);
     uv_insert_pending_req(loop, req);
 
     /* Some time might have passed waiting for I/O,
@@ -361,7 +361,7 @@ static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
     for (i = 0; i < count; i++) {
       /* Package was dequeued */      
       req = uv_overlapped_to_req(overlappeds[i].lpOverlapped);
-      debug_print("gqcsEX: time:%llu type:%d data:%p key:%d bytes:%d internal:%8.8x", loop->time, req->type, req->data, overlappeds[i].lpCompletionKey, overlappeds[i].dwNumberOfBytesTransferred, overlappeds[i].Internal);
+      debug_print("uv_poll_ex: gqcsEX: type:%d data:%p key:%d bytes:%d internal:%8.8x", req->type, req->data, overlappeds[i].lpCompletionKey, overlappeds[i].dwNumberOfBytesTransferred, overlappeds[i].Internal);
       
       uv_insert_pending_req(loop, req);
     }
@@ -410,9 +410,9 @@ int uv_run(uv_loop_t *loop, uv_run_mode mode) {
     uv_update_time(loop);
 
   while (r != 0 && loop->stop_flag == 0) {
-    debug_print("uv_run loop: time:%llu ---------------------------------------------------------------------", loop->time);
-    uv_update_time(loop);
-    debug_print("uv_run loop: time:%llu", loop->time);
+    loop->loop_counter++;
+    debug_print("uv_run loop: counter: %llu ---------------------------------------------------------------------", loop->loop_counter);
+    uv_update_time(loop);    
     uv_process_timers(loop);
 
     ran_pending = uv_process_reqs(loop);
