@@ -82,6 +82,7 @@
 
 INLINE static void uv_req_init(uv_loop_t* loop, uv_req_t* req) {
   req->type = UV_UNKNOWN_REQ;
+  req->debug_name = "";
   SET_REQ_SUCCESS(req);
 }
 
@@ -106,6 +107,8 @@ INLINE static void uv_insert_pending_req(uv_loop_t* loop, uv_req_t* req) {
 
 #define DELEGATE_STREAM_REQ(loop, req, method, handle_at)                     \
   do {                                                                        \
+    uv_handle_t* h = ((uv_handle_t*) (req)->handle_at);                       \
+    debug_print("DELEGATE_STREAM_REQ: %d %s", h->type, h->debug_name);        \
     switch (((uv_handle_t*) (req)->handle_at)->type) {                        \
       case UV_TCP:                                                            \
         uv_process_tcp_##method##_req(loop,                                   \
@@ -148,27 +151,27 @@ INLINE static int uv_process_reqs(uv_loop_t* loop) {
     next = req->next_req != first ? req->next_req : NULL;    
     switch (req->type) {
       case UV_READ:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_READ");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_READ", req->debug_name);
         DELEGATE_STREAM_REQ(loop, req, read, data);
         break;
 
       case UV_WRITE:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_WRITE");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_WRITE", req->debug_name);
         DELEGATE_STREAM_REQ(loop, (uv_write_t*) req, write, handle);
         break;
 
       case UV_ACCEPT:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_ACCEPT");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_ACCEPT", req->debug_name);
         DELEGATE_STREAM_REQ(loop, req, accept, data);
         break;
 
       case UV_CONNECT:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_CONNECT");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_CONNECT", req->debug_name);
         DELEGATE_STREAM_REQ(loop, (uv_connect_t*) req, connect, handle);
         break;
 
       case UV_SHUTDOWN:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_SHUTDOWN");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_SHUTDOWN", req->debug_name);
         /* Tcp shutdown requests don't come here. */
         assert(((uv_shutdown_t*) req)->handle->type == UV_NAMED_PIPE);
         uv_process_pipe_shutdown_req(
@@ -178,39 +181,39 @@ INLINE static int uv_process_reqs(uv_loop_t* loop) {
         break;
 
       case UV_UDP_RECV:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_UDP_RECV");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_UDP_RECV", req->debug_name);
         uv_process_udp_recv_req(loop, (uv_udp_t*) req->data, req);
         break;
 
       case UV_UDP_SEND:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_UDP_SEND");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_UDP_SEND", req->debug_name);
         uv_process_udp_send_req(loop,
                                 ((uv_udp_send_t*) req)->handle,
                                 (uv_udp_send_t*) req);
         break;
 
       case UV_WAKEUP:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_WAKEUP");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_WAKEUP", req->debug_name);
         uv_process_async_wakeup_req(loop, (uv_async_t*) req->data, req);
         break;
 
       case UV_SIGNAL_REQ:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_SIGNAL_REQ");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_SIGNAL_REQ", req->debug_name);
         uv_process_signal_req(loop, (uv_signal_t*) req->data, req);
         break;
 
       case UV_POLL_REQ:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_POLL_REQ");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_POLL_REQ", req->debug_name);
         uv_process_poll_req(loop, (uv_poll_t*) req->data, req);
         break;
 
       case UV_PROCESS_EXIT:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_PROCESS_EXIT");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_PROCESS_EXIT", req->debug_name);
         uv_process_proc_exit(loop, (uv_process_t*) req->data);
         break;
 
       case UV_FS_EVENT_REQ:
-        debug_print("uv_process_reqs: %d %s", req->type, "UV_FS_EVENT_REQ");
+        debug_print("uv_process_reqs: %d %s %s", req->type, "UV_FS_EVENT_REQ", req->debug_name);
         uv_process_fs_event_req(loop, req, (uv_fs_event_t*) req->data);
         break;
 

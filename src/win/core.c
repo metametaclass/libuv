@@ -348,7 +348,7 @@ static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
   ULONG count;
   ULONG i;
 
-  debug_print("uv_poll_ex: %d %llu", timeout, loop->time);
+  debug_print("uv_poll_ex: %d", timeout);
 
   success = pGetQueuedCompletionStatusEx(loop->iocp,
                                          overlappeds,

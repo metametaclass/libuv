@@ -149,7 +149,7 @@ static int uv_tcp_set_socket(uv_loop_t* loop, uv_tcp_t* handle,
 
 int uv_tcp_init(uv_loop_t* loop, uv_tcp_t* handle) {
   uv_stream_init(loop, (uv_stream_t*) handle, UV_TCP);
-
+    
   handle->accept_reqs = NULL;
   handle->pending_accepts = NULL;
   handle->socket = INVALID_SOCKET;
@@ -1126,7 +1126,10 @@ void uv_process_tcp_connect_req(uv_loop_t* loop, uv_tcp_t* handle,
 int uv_tcp_import(uv_tcp_t* tcp, uv__ipc_socket_info_ex* socket_info_ex,
     int tcp_connection) {
   int err;
-  SOCKET socket = WSASocketW(FROM_PROTOCOL_INFO,
+  SOCKET socket;
+  debug_print("uv_tcp_import: %d", tcp->socket); 
+
+  socket = WSASocketW(FROM_PROTOCOL_INFO,
                              FROM_PROTOCOL_INFO,
                              FROM_PROTOCOL_INFO,
                              &socket_info_ex->socket_info,
@@ -1210,6 +1213,7 @@ int uv_tcp_keepalive(uv_tcp_t* handle, int enable, unsigned int delay) {
 
 int uv_tcp_duplicate_socket(uv_tcp_t* handle, int pid,
     LPWSAPROTOCOL_INFOW protocol_info) {
+  debug_print("uv_tcp_duplicate_socket: %d %d", handle->socket, pid);
   if (!(handle->flags & UV_HANDLE_CONNECTION)) {
     /*
      * We're about to share the socket with another process.  Because
