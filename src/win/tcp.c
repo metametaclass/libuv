@@ -338,13 +338,14 @@ static void CALLBACK post_completion(void* context, BOOLEAN timed_out) {
 
 static void CALLBACK post_write_completion(void* context, BOOLEAN timed_out) {
   uv_write_t* req;
-  uv_tcp_t* handle;
-
-  req = (uv_write_t*) context;
+  uv_tcp_t* handle;  
+  debug_print("post_write_completion: begin %d", timed_out);
+  req = (uv_write_t*) context;  
   assert(req != NULL);
   handle = (uv_tcp_t*)req->handle;
   assert(handle != NULL);
   assert(!timed_out);
+  debug_print("post_write_completion: %s %s %s", handle->debug_name, req->debug_name, req->type);
 
   if (!PostQueuedCompletionStatus(handle->loop->iocp,
                                   req->overlapped.InternalHigh,
@@ -352,6 +353,7 @@ static void CALLBACK post_write_completion(void* context, BOOLEAN timed_out) {
                                   &req->overlapped)) {
     uv_fatal_error(GetLastError(), "PostQueuedCompletionStatus");
   }
+  debug_print("post_write_completion: end");
 }
 
 
@@ -486,6 +488,7 @@ static void uv_tcp_queue_read(uv_loop_t* loop, uv_tcp_t* handle) {
                    &flags,
                    &req->overlapped,
                    NULL);
+  debug_print("uv_tcp_queue_read: WSARecv %d %s %d %d", result, req->debug_name, GetLastError(), WSAGetLastError());
 
   if (UV_SUCCEEDED_WITHOUT_IOCP(result == 0)) {
     /* Process the req without IOCP. */
@@ -846,9 +849,11 @@ int uv_tcp_write(uv_loop_t* loop,
                    0,
                    &req->overlapped,
                    NULL);
+  debug_print("uv_tcp_write: WSASend %d %s %d %d", result, req->debug_name, GetLastError(), WSAGetLastError());
 
   if (UV_SUCCEEDED_WITHOUT_IOCP(result == 0)) {
     /* Request completed immediately. */
+    debug_print("uv_tcp_write: success 1");
     req->queued_bytes = 0;
     handle->reqs_pending++;
     handle->write_reqs_pending++;
@@ -856,6 +861,7 @@ int uv_tcp_write(uv_loop_t* loop,
     uv_insert_pending_req(loop, (uv_req_t*) req);
   } else if (UV_SUCCEEDED_WITH_IOCP(result == 0)) {
     /* Request queued by the kernel. */
+    debug_print("uv_tcp_write: queued");
     req->queued_bytes = uv__count_bufs(bufs, nbufs);
     handle->reqs_pending++;
     handle->write_reqs_pending++;
@@ -865,6 +871,7 @@ int uv_tcp_write(uv_loop_t* loop,
         !RegisterWaitForSingleObject(&req->wait_handle,
           req->event_handle, post_write_completion, (void*) req,
           INFINITE, WT_EXECUTEINWAITTHREAD | WT_EXECUTEONLYONCE)) {
+      debug_print("uv_tcp_write: RegisterWaitForSingleObject error");
       SET_REQ_ERROR(req, GetLastError());
       uv_insert_pending_req(loop, (uv_req_t*)req);
     }
