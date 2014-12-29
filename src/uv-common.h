@@ -204,6 +204,7 @@ void uv__fs_scandir_cleanup(uv_fs_t* req);
     (h)->loop = (loop_);                                                      \
     (h)->type = (type_);                                                      \
     (h)->flags = UV__HANDLE_REF;  /* Ref the loop when active. */             \
+    (h)->debug_name = "";                                                     \
     QUEUE_INSERT_TAIL(&(loop_)->handle_queue, &(h)->handle_queue);            \
     uv__handle_platform_init(h);                                              \
   }                                                                           \

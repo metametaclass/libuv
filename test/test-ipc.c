@@ -73,6 +73,7 @@ static void on_connection(uv_stream_t* server, int status) {
     ASSERT(conn);
     r = uv_tcp_init(server->loop, conn);
     ASSERT(r == 0);
+    conn->debug_name = "on_connection";
 
     r = uv_accept(server, (uv_stream_t*)conn);
     ASSERT(r == 0);
@@ -120,6 +121,7 @@ static void connect_cb(uv_connect_t* req, int status) {
 static void make_many_connections(void) {
   tcp_conn* conn;
   struct sockaddr_in addr;
+  char* tmp;
   int r, i;
 
   debug_print("make_many_connections");
@@ -130,6 +132,11 @@ static void make_many_connections(void) {
 
     r = uv_tcp_init(uv_default_loop(), &conn->conn);
     ASSERT(r == 0);
+
+    //MEM LEAK!
+    tmp = (char *)malloc(1024);
+    sprintf(tmp,"make_many_connection %d", i);
+    conn->conn.debug_name = tmp;
 
     ASSERT(0 == uv_ip4_addr("127.0.0.1", TEST_PORT, &addr));
 
@@ -183,6 +190,7 @@ static void on_read(uv_stream_t* handle,
     ASSERT(pending == UV_TCP);
     r = uv_tcp_init(uv_default_loop(), &tcp_server);
     ASSERT(r == 0);
+    tcp_server.debug_name = "tcp_server on_read";
 
     r = uv_accept((uv_stream_t*)pipe, (uv_stream_t*)&tcp_server);
     ASSERT(r == 0);
@@ -250,6 +258,7 @@ static void on_read_listen_after_bound_twice(uv_stream_t* handle,
     ASSERT(pending == UV_TCP);
     r = uv_tcp_init(uv_default_loop(), &tcp_server);
     ASSERT(r == 0);
+    tcp_server.debug_name = "tcp_server on_read_listen_after_bound_twice";
     
     r = uv_accept((uv_stream_t*)pipe, (uv_stream_t*)&tcp_server);
     ASSERT(r == 0);
@@ -261,6 +270,7 @@ static void on_read_listen_after_bound_twice(uv_stream_t* handle,
     ASSERT(pending == UV_TCP);
     r = uv_tcp_init(uv_default_loop(), &tcp_server2);
     ASSERT(r == 0);
+    tcp_server2.debug_name = "tcp_server2 on_read_listen_after_bound_twice";
     
     r = uv_accept((uv_stream_t*)pipe, (uv_stream_t*)&tcp_server2);
     ASSERT(r == 0);
@@ -293,6 +303,7 @@ void spawn_helper(uv_pipe_t* channel,
   r = uv_pipe_init(uv_default_loop(), channel, 1);
   ASSERT(r == 0);
   ASSERT(channel->ipc);
+  channel->debug_name = "spawn_helper pipe";
 
   exepath_size = sizeof(exepath);
   r = uv_exepath(exepath, &exepath_size);
@@ -392,6 +403,8 @@ static void on_read_connection(uv_stream_t* handle,
   r = uv_tcp_init(uv_default_loop(), &tcp_connection);
   ASSERT(r == 0);
 
+  tcp_connection.debug_name = "tcp_connection on_read_connection";
+
   r = uv_accept(handle, (uv_stream_t*)&tcp_connection);
   ASSERT(r == 0);
 
@@ -466,6 +479,7 @@ TEST_IMPL(listen_with_simultaneous_accepts) {
 
   r = uv_tcp_init(uv_default_loop(), &server);
   ASSERT(r == 0);
+  server.debug_name = "server listen_with_simultaneous_accepts";
 
   r = uv_tcp_bind(&server, (const struct sockaddr*) &addr, 0);
   ASSERT(r == 0);
@@ -491,6 +505,7 @@ TEST_IMPL(listen_no_simultaneous_accepts) {
 
   r = uv_tcp_init(uv_default_loop(), &server);
   ASSERT(r == 0);
+  server.debug_name = "server listen_no_simultaneous_accepts";
 
   r = uv_tcp_bind(&server, (const struct sockaddr*) &addr, 0);
   ASSERT(r == 0);
@@ -593,6 +608,7 @@ static void ipc_on_connection(uv_stream_t* server, int status) {
 
     r = uv_tcp_init(server->loop, &conn.conn);
     ASSERT(r == 0);
+    conn.conn.debug_name = "ipc_on_connection conn.conn";
 
     r = uv_accept(server, (uv_stream_t*)&conn.conn);
     ASSERT(r == 0);
@@ -617,11 +633,12 @@ static void ipc_on_connection_tcp_conn(uv_stream_t* server, int status) {
   ASSERT(status == 0);
   ASSERT((uv_stream_t*)&tcp_server == server);
 
-  conn = malloc(sizeof(*conn));
+  conn = (uv_tcp_t*) malloc(sizeof(*conn));
   ASSERT(conn);
 
   r = uv_tcp_init(server->loop, conn);
   ASSERT(r == 0);
+  conn->debug_name = "ipc_on_connection_tcp_conn conn";
 
   r = uv_accept(server, (uv_stream_t*)conn);
   ASSERT(r == 0);
@@ -655,6 +672,7 @@ int ipc_helper(int listen_after_write) {
 
   r = uv_pipe_init(uv_default_loop(), &channel, 1);
   ASSERT(r == 0);
+  channel.debug_name = "ipc_helper channel";
 
   uv_pipe_open(&channel, 0);
 
@@ -664,6 +682,7 @@ int ipc_helper(int listen_after_write) {
 
   r = uv_tcp_init(uv_default_loop(), &tcp_server);
   ASSERT(r == 0);
+  tcp_server.debug_name = "ipc_helper tcp_server";
 
   r = uv_tcp_bind(&tcp_server, (const struct sockaddr*) &addr, 0);
   ASSERT(r == 0);
@@ -705,6 +724,7 @@ int ipc_helper_tcp_connection(void) {
 
   r = uv_pipe_init(uv_default_loop(), &channel, 1);
   ASSERT(r == 0);
+  channel.debug_name = "ipc_helper_tcp_connection channel";
 
   uv_pipe_open(&channel, 0);
 
@@ -714,6 +734,7 @@ int ipc_helper_tcp_connection(void) {
 
   r = uv_tcp_init(uv_default_loop(), &tcp_server);
   ASSERT(r == 0);
+  tcp_server.debug_name = "ipc_helper_tcp_connection tcp_server";
 
   ASSERT(0 == uv_ip4_addr("0.0.0.0", TEST_PORT, &addr));
 
@@ -726,6 +747,7 @@ int ipc_helper_tcp_connection(void) {
   /* Make a connection to the server */
   r = uv_tcp_init(uv_default_loop(), &conn.conn);
   ASSERT(r == 0);
+  conn.conn.debug_name = "ipc_helper_tcp_connection conn.conn";
 
   ASSERT(0 == uv_ip4_addr("127.0.0.1", TEST_PORT, &addr));
 
@@ -761,6 +783,7 @@ int ipc_helper_bind_twice(void) {
 
   r = uv_pipe_init(uv_default_loop(), &channel, 1);
   ASSERT(r == 0);
+  channel.debug_name = "ipc_helper_bind_twice channel";
 
   uv_pipe_open(&channel, 0);
 
@@ -772,8 +795,12 @@ int ipc_helper_bind_twice(void) {
 
   r = uv_tcp_init(uv_default_loop(), &tcp_server);
   ASSERT(r == 0);
+  tcp_server.debug_name = "ipc_helper_bind_twice tcp_server";
+
   r = uv_tcp_init(uv_default_loop(), &tcp_server2);
   ASSERT(r == 0);
+  tcp_server2.debug_name = "ipc_helper_bind_twice tcp_server2";
+
 
   r = uv_tcp_bind(&tcp_server, (const struct sockaddr*) &addr, 0);
   ASSERT(r == 0);

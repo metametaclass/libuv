@@ -357,6 +357,7 @@ UV_EXTERN const char* uv_err_name(int err);
 #define UV_REQ_FIELDS                                                         \
   /* public */                                                                \
   void* data;                                                                 \
+  char* debug_name;                                                           \
   /* read-only */                                                             \
   uv_req_type type;                                                           \
   /* private */                                                               \
@@ -389,6 +390,7 @@ struct uv_shutdown_s {
 #define UV_HANDLE_FIELDS                                                      \
   /* public */                                                                \
   void* data;                                                                 \
+  char* debug_name;                                                           \
   /* read-only */                                                             \
   uv_loop_t* loop;                                                            \
   uv_handle_type type;                                                        \
