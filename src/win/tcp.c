@@ -23,6 +23,7 @@
 #include <stdlib.h>
 
 #include "uv.h"
+#include "debug.h"
 #include "internal.h"
 #include "handle-inl.h"
 #include "stream-inl.h"
@@ -1275,11 +1276,12 @@ int uv_tcp_simultaneous_accepts(uv_tcp_t* handle, int enable) {
 static int uv_tcp_try_cancel_io(uv_tcp_t* tcp) {
   SOCKET socket = tcp->socket;
   int non_ifs_lsp;
-
+  
   /* Check if we have any non-IFS LSPs stacked on top of TCP */
   non_ifs_lsp = (tcp->flags & UV_HANDLE_IPV6) ? uv_tcp_non_ifs_lsp_ipv6 :
                                                 uv_tcp_non_ifs_lsp_ipv4;
 
+  debug_print("uv_tcp_try_cancel_io: %p %d %d", tcp, tcp->socket, non_ifs_lsp);
   /* If there are non-ifs LSPs then try to obtain a base handle for the */
   /* socket. This will always fail on Windows XP/3k. */
   if (non_ifs_lsp) {
@@ -1300,6 +1302,7 @@ static int uv_tcp_try_cancel_io(uv_tcp_t* tcp) {
 
   assert(socket != 0 && socket != INVALID_SOCKET);
 
+  debug_print("uv_tcp_try_cancel_io: CancelIo");
   if (!CancelIo((HANDLE) socket)) {
     return GetLastError();
   }
@@ -1311,7 +1314,7 @@ static int uv_tcp_try_cancel_io(uv_tcp_t* tcp) {
 
 void uv_tcp_close(uv_loop_t* loop, uv_tcp_t* tcp) {
   int close_socket = 1;
-
+  debug_print("uv_tcp_close: %p %d", tcp, tcp->socket);
   if (tcp->flags & UV_HANDLE_READ_PENDING) {
     /* In order for winsock to do a graceful close there must not be any */
     /* any pending reads, or the socket must be shut down for writing */
