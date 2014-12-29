@@ -345,7 +345,7 @@ static void CALLBACK post_write_completion(void* context, BOOLEAN timed_out) {
   handle = (uv_tcp_t*)req->handle;
   assert(handle != NULL);
   assert(!timed_out);
-  debug_print("post_write_completion: %s %s %s", handle->debug_name, req->debug_name, req->type);
+  debug_print("post_write_completion: %s %s %d", handle->debug_name, req->debug_name, req->type);
 
   if (!PostQueuedCompletionStatus(handle->loop->iocp,
                                   req->overlapped.InternalHigh,
@@ -871,7 +871,7 @@ int uv_tcp_write(uv_loop_t* loop,
         !RegisterWaitForSingleObject(&req->wait_handle,
           req->event_handle, post_write_completion, (void*) req,
           INFINITE, WT_EXECUTEINWAITTHREAD | WT_EXECUTEONLYONCE)) {
-      debug_print("uv_tcp_write: RegisterWaitForSingleObject error");
+      debug_print("uv_tcp_write: RegisterWaitForSingleObject error %d", GetLastError());
       SET_REQ_ERROR(req, GetLastError());
       uv_insert_pending_req(loop, (uv_req_t*)req);
     }
