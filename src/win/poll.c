@@ -77,7 +77,7 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   uv_req_t* req;
   AFD_POLL_INFO* afd_poll_info;
   DWORD result;
-  debug_print("uv__fast_poll_submit_poll_req: time:%llu", loop->time);
+  debug_print("uv__fast_poll_submit_poll_req: %d %s", handle->socket, handle->debug_name);
 
   /* Find a yet unsubmitted req to submit. */
   if (handle->submitted_events_1 == 0) {
@@ -132,7 +132,7 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
 static int uv__fast_poll_cancel_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   AFD_POLL_INFO afd_poll_info;
   DWORD result;
-  debug_print("uv__fast_poll_cancel_poll_req: time:%llu", loop->time);
+  debug_print("uv__fast_poll_cancel_poll_req: %d %s", handle->socket, handle->debug_name);
 
   afd_poll_info.Exclusive = TRUE;
   afd_poll_info.NumberOfHandles = 1;
@@ -173,7 +173,7 @@ static void uv__fast_poll_process_poll_req(uv_loop_t* loop, uv_poll_t* handle,
     assert(0);
     return;
   }
-  debug_print("uv__fast_poll_process_poll_req: time:%llu req->overlapped.Internal:%d", loop->time, req->overlapped.Internal);
+  debug_print("uv__fast_poll_process_poll_req: s:%d n:%s req->overlapped.Internal:%d", handle->socket, handle->debug_name, req->overlapped.Internal);
 
   /* Report an error unless the select was just interrupted. */
   if (!REQ_SUCCESS(req)) {

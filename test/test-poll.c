@@ -172,11 +172,13 @@ static connection_context_t* create_connection_context(
   context->open_handles++;
   context->poll_handle.data = context;
   ASSERT(r == 0);
+  context->poll_handle.debug_name = "create_connection_context context->poll_handle";
 
   r = uv_timer_init(uv_default_loop(), &context->timer_handle);
   context->open_handles++;
   context->timer_handle.data = context;
   ASSERT(r == 0);
+  context->timer_handle.debug_name = "create_connection_context context->timer_handle";
 
   return context;
 }
@@ -480,6 +482,7 @@ static server_context_t* create_server_context(
   r = uv_poll_init_socket(uv_default_loop(), &context->poll_handle, sock);
   context->poll_handle.data = context;
   ASSERT(r == 0);
+  context->poll_handle.debug_name = "create_server_context context->poll_handle";
 
   return context;
 }
