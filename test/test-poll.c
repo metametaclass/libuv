@@ -227,7 +227,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
 
   
 
-  debug_print("connection_poll_cb: time %llu begin sock:%d name:%s handle:%p status:%d events:%d sent:%d read:%d", handle->loop->time, context->sock, context->name, handle, status, events, context->sent, context->read);
+  debug_print("connection_poll_cb: begin sock:%d name:%s handle:%p status:%d events:%d sent:%d read:%d", context->sock, context->name, handle, status, events, context->sent, context->read);
 
   new_events = context->events;
 
@@ -367,7 +367,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
                 ASSERT(send_bytes > 0);
 
                 r = send(context->sock, buffer, send_bytes, 0);
-                debug_print("send: a2e %d %d", r, send_bytes, WSAGetLastError());
+                //debug_print("send: a2e %d %d", r, send_bytes, WSAGetLastError());
 
                 if (r <= 0) break;
                 context->sent += r;
