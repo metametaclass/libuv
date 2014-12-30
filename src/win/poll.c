@@ -77,7 +77,7 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   uv_req_t* req;
   AFD_POLL_INFO* afd_poll_info;
   DWORD result;
-  debug_print("uv__fast_poll_submit_poll_req: %d %s", handle->socket, handle->debug_name);
+  debug_print("uv__fast_poll_submit_poll_req: %d %s %d %d", handle->socket, handle->debug_name, handle->submitted_events_1, handle->submitted_events_2);
 
   /* Find a yet unsubmitted req to submit. */
   if (handle->submitted_events_1 == 0) {
@@ -115,6 +115,7 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   }
 
   memset(&req->overlapped, 0, sizeof req->overlapped);
+  debug_print("uv__fast_poll_submit_poll_req: events:%x", afd_poll_info->Handles[0].Events);
 
   result = uv_msafd_poll((SOCKET) handle->peer_socket,
                          afd_poll_info,
