@@ -416,6 +416,11 @@ static void uv_tcp_queue_accept(uv_tcp_t* handle, uv_tcp_accept_t* req) {
     /* The req will be processed with IOCP. */
     req->accept_socket = accept_socket;
     handle->reqs_pending++;
+
+    if(success){
+        SetEvent(req->event_handle);
+    }
+
     if (handle->flags & UV_HANDLE_EMULATE_IOCP &&
         req->wait_handle == INVALID_HANDLE_VALUE &&
         !RegisterWaitForSingleObject(&req->wait_handle,
@@ -500,6 +505,11 @@ static void uv_tcp_queue_read(uv_loop_t* loop, uv_tcp_t* handle) {
     /* The req will be processed with IOCP. */
     handle->flags |= UV_HANDLE_READ_PENDING;
     handle->reqs_pending++;
+
+    if(result==0){
+        SetEvent(req->event_handle);
+    }
+
     if (handle->flags & UV_HANDLE_EMULATE_IOCP &&
         req->wait_handle == INVALID_HANDLE_VALUE &&
         !RegisterWaitForSingleObject(&req->wait_handle,
@@ -867,6 +877,12 @@ int uv_tcp_write(uv_loop_t* loop,
     handle->write_reqs_pending++;
     REGISTER_HANDLE_REQ(loop, handle, req);
     handle->write_queue_size += req->queued_bytes;
+
+    //win2003 workaround
+    if(result==0){
+        SetEvent(req->event_handle);
+    }
+
     if (handle->flags & UV_HANDLE_EMULATE_IOCP &&
         !RegisterWaitForSingleObject(&req->wait_handle,
           req->event_handle, post_write_completion, (void*) req,
