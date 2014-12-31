@@ -172,13 +172,13 @@ static connection_context_t* create_connection_context(
   context->open_handles++;
   context->poll_handle.data = context;
   ASSERT(r == 0);
-  context->poll_handle.debug_name = "create_connection_context context->poll_handle";
+  context->poll_handle.debug_name = is_server_connection?"ctx_server_poll_handle":"ctx_client_poll_handle";
 
   r = uv_timer_init(uv_default_loop(), &context->timer_handle);
   context->open_handles++;
   context->timer_handle.data = context;
   ASSERT(r == 0);
-  context->timer_handle.debug_name = "create_connection_context context->timer_handle";
+  context->timer_handle.debug_name = is_server_connection?"ctx_server_timer_handle":"ctx_client_timer_handle";
 
   return context;
 }

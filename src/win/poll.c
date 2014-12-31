@@ -77,7 +77,7 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   uv_req_t* req;
   AFD_POLL_INFO* afd_poll_info;
   DWORD result;
-  debug_print(LL_TRACE, "uv__fast_poll_submit_poll_req: %d %s %d %d", handle->socket, handle->debug_name, handle->submitted_events_1, handle->submitted_events_2);
+  debug_print(LL_TRACE, "uv__fast_poll_submit_poll_req: %d \"%s\" ev1:%d ev2:%d c1:%llu c2:%llu", handle->socket, handle->debug_name, handle->submitted_events_1, handle->submitted_events_2, handle->counter_1, handle->counter_2);
 
   /* Find a yet unsubmitted req to submit. */
   if (handle->submitted_events_1 == 0) {
@@ -86,12 +86,14 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
     handle->submitted_events_1 = handle->events;
     handle->mask_events_1 = 0;
     handle->mask_events_2 = handle->events;
+    handle->counter_1++;
   } else if (handle->submitted_events_2 == 0) {
     req = &handle->poll_req_2;
     afd_poll_info = &handle->afd_poll_info_2;
     handle->submitted_events_2 = handle->events;
     handle->mask_events_1 = handle->events;
     handle->mask_events_2 = 0;
+    handle->counter_2++;
   } else {
     assert(0);
     return;
@@ -161,20 +163,27 @@ static void uv__fast_poll_process_poll_req(uv_loop_t* loop, uv_poll_t* handle,
     uv_req_t* req) {
   unsigned char mask_events;
   AFD_POLL_INFO* afd_poll_info;
+  int src;
 
   if (req == &handle->poll_req_1) {
-    afd_poll_info = &handle->afd_poll_info_1;
+    src = 1;
+    afd_poll_info = &handle->afd_poll_info_1;    
     handle->submitted_events_1 = 0;
+    handle->counter_1--;
     mask_events = handle->mask_events_1;
   } else if (req == &handle->poll_req_2) {
+    src = 2;
     afd_poll_info = &handle->afd_poll_info_2;
     handle->submitted_events_2 = 0;
+    handle->counter_2--;
     mask_events = handle->mask_events_2;
   } else {
     assert(0);
     return;
   }
-  debug_print(LL_TRACE, "uv__fast_poll_process_poll_req: s:%d n:%s req->overlapped.Internal:%d", handle->socket, handle->debug_name, req->overlapped.Internal);
+  debug_print(LL_TRACE, "uv__fast_poll_process_poll_req: s:%d n:\"%s\" req->overlapped.Internal:%d src:%d, c1:%llu c2:%llu", handle->socket, handle->debug_name, req->overlapped.Internal, 
+      src,
+      handle->counter_1, handle->counter_2);
 
   /* Report an error unless the select was just interrupted. */
   if (!REQ_SUCCESS(req)) {
@@ -568,11 +577,13 @@ int uv_poll_init_socket(uv_loop_t* loop, uv_poll_t* handle,
   uv_req_init(loop, (uv_req_t*) &(handle->poll_req_1));
   handle->poll_req_1.type = UV_POLL_REQ;
   handle->poll_req_1.data = handle;
+  handle->counter_1 = 0;
 
   handle->submitted_events_2 = 0;
   uv_req_init(loop, (uv_req_t*) &(handle->poll_req_2));
   handle->poll_req_2.type = UV_POLL_REQ;
   handle->poll_req_2.data = handle;
+  handle->counter_2 = 0;
 
   return 0;
 }

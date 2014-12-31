@@ -522,6 +522,8 @@ RB_HEAD(uv_timer_tree_s, uv_timer_s);
   /* Used in fast and slow mode. */                                           \
   uv_req_t poll_req_1;                                                        \
   uv_req_t poll_req_2;                                                        \
+  uint64_t counter_1;                                                         \
+  uint64_t counter_2;                                                         \
   unsigned char submitted_events_1;                                           \
   unsigned char submitted_events_2;                                           \
   unsigned char mask_events_1;                                                \
