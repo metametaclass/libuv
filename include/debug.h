@@ -10,9 +10,9 @@
 #define LL_WARN 40
 #define LL_ERROR 50
 #define LL_FATAL 60
+#define LL_NO_LOG 70;
 
-
-void _uv_init_debug_inner(int level);
+void _uv_init_debug_inner(int level, int use_ods, int use_stderr);
 
 void debug_print(int level, const char *fmt, ...);
 

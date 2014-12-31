@@ -35,9 +35,13 @@
 
 void uv_update_time(uv_loop_t* loop) {
   uint64_t new_time = uv__hrtime(UV__MILLISEC);
+  if(loop->start_time==0){
+    loop->start_time = new_time;
+    debug_print(LL_DEBUG, "uv_update_time: start time %llu", loop->start_time);
+  }
   if (new_time > loop->time) {
     loop->time = new_time;
-    debug_print(LL_TRACE, "uv_update_time: %llu", loop->time);
+    debug_print(LL_TRACE, "uv_update_time: %lld", loop->time-loop->start_time);
   }
 }
 

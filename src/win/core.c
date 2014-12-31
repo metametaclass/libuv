@@ -89,7 +89,7 @@ static void uv__crt_invalid_parameter_handler(const wchar_t* expression,
 void uv_init_debug(){
   wchar_t buffer[MAX_WPATH];
   DWORD size;
-  int level;
+  int level, use_ods, use_stderr;
   
   size = GetModuleFileNameW(0, buffer, MAX_WPATH);  
   if(size==MAX_WPATH){
@@ -104,7 +104,9 @@ void uv_init_debug(){
   }  
 
   level = GetPrivateProfileIntW(L"Debug",L"Level", LL_INFO, buffer);
-  _uv_init_debug_inner(level);
+  use_ods = GetPrivateProfileIntW(L"Debug",L"ODS", 1, buffer);
+  use_stderr = GetPrivateProfileIntW(L"Debug",L"stderr", 1, buffer);
+  _uv_init_debug_inner(level, use_ods, use_stderr);
 }
 
 static void uv_init(void) {
@@ -165,6 +167,7 @@ int uv_loop_init(uv_loop_t* loop) {
    * to zero before calling uv_update_time for the first time.
    */
   loop->time = 0;
+  loop->start_time=0;
   uv_update_time(loop);
 
   QUEUE_INIT(&loop->wq);
@@ -438,7 +441,7 @@ int uv_run(uv_loop_t *loop, uv_run_mode mode) {
   if (!r)
     uv_update_time(loop);
 
-  debug_print(LL_INFO, "uv_run: time: %llu", loop->time);
+  debug_print(LL_INFO, "uv_run: time: %lld", loop->time - loop->start_time);
   while (r != 0 && loop->stop_flag == 0) {
     loop->loop_counter++;
     debug_print(LL_TRACE, "uv_run loop: counter: %llu ---------------------------------------------------------------------", loop->loop_counter);

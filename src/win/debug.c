@@ -8,12 +8,21 @@
 
 
 static int g_log_level=30;
+static int g_use_ods=1;
+static int g_use_stderr=1;
 
 
-void _uv_init_debug_inner(int level){
+void _uv_init_debug_inner(int level, int use_ods, int use_stderr){
+    debug_print(LL_INFO, "_uv_init_debug_inner: %8d %d ODS:%d stderr:%d %s", GetCurrentProcessId(), level, use_ods, use_stderr, GetCommandLine());
+
     g_log_level = level;       
+    g_use_ods = use_ods;
+    g_use_stderr = use_stderr;    
 
-    debug_print(LL_INFO, "_uv_init_debug_inner: %d %s", level, GetCommandLine());
+    if(!(g_use_ods || g_use_stderr)){
+        g_log_level=LL_NO_LOG;
+    }
+    
 }
 
 void debug_print(int level, const char *fmt, ...)    
@@ -46,6 +55,11 @@ void debug_print(int level, const char *fmt, ...)
         else
             size*=2;
     }
-    OutputDebugString(buffer);
+    if(g_use_ods){
+        OutputDebugString(buffer);
+    }
+    if(g_use_stderr){
+        fprintf(stderr, "[%8d] %s\n", GetCurrentProcessId(), buffer);
+    }
     free(buffer);
 }
