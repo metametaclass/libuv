@@ -10,14 +10,16 @@
 static int g_log_level=30;
 static int g_use_ods=1;
 static int g_use_stderr=1;
+static int g_show_pid=0;
 
 
-void _uv_init_debug_inner(int level, int use_ods, int use_stderr){
+void _uv_init_debug_inner(int level, int use_ods, int use_stderr, int show_pid){
     debug_print(LL_INFO, "_uv_init_debug_inner: %8d %d ODS:%d stderr:%d %s", GetCurrentProcessId(), level, use_ods, use_stderr, GetCommandLine());
 
     g_log_level = level;       
     g_use_ods = use_ods;
     g_use_stderr = use_stderr;    
+    g_show_pid = show_pid;
 
     if(!(g_use_ods || g_use_stderr)){
         g_log_level=LL_NO_LOG;
@@ -59,7 +61,8 @@ void debug_print(int level, const char *fmt, ...)
         OutputDebugString(buffer);
     }
     if(g_use_stderr){
-        fprintf(stderr, "[%8d] %s\n", GetCurrentProcessId(), buffer);
+        DWORD pid = g_show_pid?GetCurrentProcessId():0;
+        fprintf(stderr, "[%8d] %s\n", pid, buffer);
     }
     free(buffer);
 }

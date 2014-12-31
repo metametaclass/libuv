@@ -12,7 +12,7 @@
 #define LL_FATAL 60
 #define LL_NO_LOG 70;
 
-void _uv_init_debug_inner(int level, int use_ods, int use_stderr);
+void _uv_init_debug_inner(int level, int use_ods, int use_stderr, int show_pid);
 
 void debug_print(int level, const char *fmt, ...);
 

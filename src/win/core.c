@@ -89,7 +89,7 @@ static void uv__crt_invalid_parameter_handler(const wchar_t* expression,
 void uv_init_debug(){
   wchar_t buffer[MAX_WPATH];
   DWORD size;
-  int level, use_ods, use_stderr;
+  int level, use_ods, use_stderr, show_pid;
   
   size = GetModuleFileNameW(0, buffer, MAX_WPATH);  
   if(size==MAX_WPATH){
@@ -106,7 +106,8 @@ void uv_init_debug(){
   level = GetPrivateProfileIntW(L"Debug",L"Level", LL_INFO, buffer);
   use_ods = GetPrivateProfileIntW(L"Debug",L"ODS", 1, buffer);
   use_stderr = GetPrivateProfileIntW(L"Debug",L"stderr", 1, buffer);
-  _uv_init_debug_inner(level, use_ods, use_stderr);
+  show_pid = GetPrivateProfileIntW(L"Debug",L"ShowPid", 0, buffer);
+  _uv_init_debug_inner(level, use_ods, use_stderr, show_pid);
 }
 
 static void uv_init(void) {
