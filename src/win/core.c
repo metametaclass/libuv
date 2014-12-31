@@ -404,7 +404,7 @@ static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
     uv_update_time(loop);
   } else if (GetLastError() != WAIT_TIMEOUT) {
     /* Serious error */
-    debug_print(LL_WARN, "uv_poll_ex: fatal error time:%llu counter:%llu error:%d", loop->time, loop->loop_counter, GetLastError());
+    debug_print(LL_FATAL, "uv_poll_ex: fatal error time:%llu counter:%llu error:%d", loop->time, loop->loop_counter, GetLastError());
     uv_fatal_error(GetLastError(), "GetQueuedCompletionStatusEx");
   } else if (timeout > 0) {
     /* GetQueuedCompletionStatus can occasionally return a little early.

@@ -50,9 +50,9 @@ void uv_fatal_error(const int errorno, const char* syscall) {
   /* FormatMessage messages include a newline character already, */
   /* so don't add another. */
   if (syscall) {
-    fprintf(stderr, "%s: (%d) %s", syscall, errorno, errmsg);
+    debug_print(LL_FATAL, "uv_fatal_error %s: (%d) %s", syscall, errorno, errmsg);
   } else {
-    fprintf(stderr, "(%d) %s", errorno, errmsg);
+    debug_print(LL_FATAL, "uv_fatal_error (%d) %s", errorno, errmsg);
   }
 
   if (buf) {
