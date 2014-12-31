@@ -41,7 +41,7 @@ void uv_update_time(uv_loop_t* loop) {
   }
   if (new_time > loop->time) {
     loop->time = new_time;
-    debug_print(LL_TRACE, "uv_update_time: %lld", loop->time-loop->start_time);
+    debug_print(LL_VERBOSE, "uv_update_time: %lld", loop->time-loop->start_time);
   }
 }
 
