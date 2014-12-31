@@ -187,7 +187,7 @@ static connection_context_t* create_connection_context(
 static void connection_close_cb(uv_handle_t* handle) {
   connection_context_t* context = (connection_context_t*) handle->data;
 
-  debug_print("connection_close_cb: %d %p %d %d", context->sock, handle, context->read, context->sent);
+  debug_print(LL_DEBUG, "connection_close_cb: %d %p %d %d", context->sock, handle, context->read, context->sent);
 
   if (--context->open_handles == 0) {
     if (test_mode == DUPLEX || context->is_server_connection) {
@@ -210,7 +210,7 @@ static void connection_close_cb(uv_handle_t* handle) {
 
 
 static void destroy_connection_context(connection_context_t* context) {
-  debug_print("destroy_connection_context: %p %s", context, context->name);
+  debug_print(LL_DEBUG, "destroy_connection_context: %p %s", context, context->name);
   uv_close((uv_handle_t*) &context->poll_handle, connection_close_cb);
   uv_close((uv_handle_t*) &context->timer_handle, connection_close_cb);
 }
@@ -227,13 +227,13 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
 
   
 
-  debug_print("connection_poll_cb: begin sock:%d name:%s handle:%p status:%d events:%d sent:%d read:%d", context->sock, context->name, handle, status, events, context->sent, context->read);
+  debug_print(LL_DEBUG, "connection_poll_cb: begin sock:%d name:%s handle:%p status:%d events:%d sent:%d read:%d", context->sock, context->name, handle, status, events, context->sent, context->read);
 
   new_events = context->events;
 
   if (events & UV_READABLE) {
     int action = rand() % max_action;
-    debug_print("readable: action %d", action);
+    debug_print(LL_DEBUG, "readable: action %d", action);
 
     switch (action) {
       case 0:
@@ -241,14 +241,14 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
         /* Read a couple of bytes. */
         static char buffer[74];
         r = recv(context->sock, buffer, sizeof buffer, 0);
-        debug_print("recv: a1 %d/%d %d", r, sizeof buffer, WSAGetLastError());
+        debug_print(LL_DEBUG, "recv: a1 %d/%d %d", r, sizeof buffer, WSAGetLastError());
         ASSERT(r >= 0);
 
         if (r > 0) {
           context->read += r;
         } else {
           /* Got FIN. */
-          debug_print("read: a1 got FIN %s %d", context->name, context->sock);
+          debug_print(LL_DEBUG, "read: a1 got FIN %s %d", context->name, context->sock);
           context->got_fin = 1;
           new_events &= ~UV_READABLE;
         }
@@ -261,18 +261,18 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
         /* Read until EAGAIN. */
         static char buffer[931];
         r = recv(context->sock, buffer, sizeof buffer, 0);
-        debug_print("recv: a2 %d/%d %d", r, sizeof buffer, WSAGetLastError());
+        debug_print(LL_DEBUG, "recv: a2 %d/%d %d", r, sizeof buffer, WSAGetLastError());
         ASSERT(r >= 0);
        
         while (r > 0) {
           context->read += r;
           r = recv(context->sock, buffer, sizeof buffer, 0);
-          debug_print("recv: a2e %d/%d %d", r, sizeof buffer, WSAGetLastError());
+          debug_print(LL_DEBUG, "recv: a2e %d/%d %d", r, sizeof buffer, WSAGetLastError());
         }
 
         if (r == 0) {
           /* Got FIN. */
-          debug_print("read: a2 got FIN %s %d", context->name, context->sock);
+          debug_print(LL_DEBUG, "read: a2 got FIN %s %d", context->name, context->sock);
           context->got_fin = 1;
           new_events &= ~UV_READABLE;
         } else {
@@ -314,7 +314,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
         !(test_mode == UNIDIRECTIONAL && context->is_server_connection)) {
       /* We have to send more bytes. */
       int action = rand() % max_action;
-      debug_print("writable: action %d", action);
+      debug_print(LL_DEBUG, "writable: action %d", action);
 
       switch (action) {
         case 0:
@@ -326,7 +326,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
           ASSERT(send_bytes > 0);
 
           r = send(context->sock, buffer, send_bytes, 0);
-          debug_print("send: a1 %d %d", r, send_bytes, WSAGetLastError());
+          debug_print(LL_DEBUG, "send: a1 %d %d", r, send_bytes, WSAGetLastError());
 
           if (r < 0) {
             ASSERT(got_eagain());
@@ -349,7 +349,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
           ASSERT(send_bytes > 0);
 
           r = send(context->sock, buffer, send_bytes, 0);
-          debug_print("send: a2 %d %d", r, send_bytes, WSAGetLastError());
+          debug_print(LL_DEBUG, "send: a2 %d %d", r, send_bytes, WSAGetLastError());
 
           if (r < 0) {
             ASSERT(got_eagain());
@@ -367,7 +367,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
                 ASSERT(send_bytes > 0);
 
                 r = send(context->sock, buffer, send_bytes, 0);
-                //debug_print("send: a2e %d %d", r, send_bytes, WSAGetLastError());
+                //debug_print(LL_DEBUG, "send: a2e %d %d", r, send_bytes, WSAGetLastError());
 
                 if (r <= 0) break;
                 context->sent += r;
@@ -410,7 +410,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
     } else {
       /* Nothing more to write. Send FIN. */
       int r = 0;
-      debug_print("shutdown: %s %d", context->name, context->sock);
+      debug_print(LL_DEBUG, "shutdown: %s %d", context->name, context->sock);
 #ifdef _WIN32
       r = shutdown(context->sock, SD_SEND);
 #else
@@ -424,13 +424,13 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
 
   if (context->got_fin && context->sent_fin) {
     /* Sent and received FIN. Close and destroy context. */
-    debug_print("close_socket: %d %s %p", context->sock, context->name, context);
+    debug_print(LL_DEBUG, "close_socket: %d %s %p", context->sock, context->name, context);
     close_socket(context->sock);
     destroy_connection_context(context);
     context->events = 0;
 
   } else if (new_events != context->events) {
-    debug_print("restart poll");
+    debug_print(LL_DEBUG, "restart poll");
     /* Poll mask changed. Call uv_poll_start again. */
     context->events = new_events;
     uv_poll_start(handle, new_events, connection_poll_cb);
@@ -443,7 +443,7 @@ static void connection_poll_cb(uv_poll_t* handle, int status, int events) {
     ASSERT(0 == uv_is_active((uv_handle_t*) handle));
   }
 
-  debug_print("connection_poll_cb: end sock:%d name:%s handle:%p status:%d events:%d sent:%d read:%d", context->sock, context->name, handle, status, events, context->sent, context->read);
+  debug_print(LL_DEBUG, "connection_poll_cb: end sock:%d name:%s handle:%p status:%d events:%d sent:%d read:%d", context->sock, context->name, handle, status, events, context->sent, context->read);
 }
 
 
@@ -451,7 +451,7 @@ static void delay_timer_cb(uv_timer_t* timer) {
   connection_context_t* context = (connection_context_t*) timer->data;
   int r;
 
-  debug_print("delay_timer_cb: %d %p", context->sock, context);
+  debug_print(LL_DEBUG, "delay_timer_cb: %d %p", context->sock, context);
 
   /* Timer should auto stop. */
   ASSERT(0 == uv_is_active((uv_handle_t*) timer));
@@ -490,13 +490,13 @@ static server_context_t* create_server_context(
 
 static void server_close_cb(uv_handle_t* handle) {  
   server_context_t* context = (server_context_t*) handle->data;
-  debug_print("server_close_cb: %d %p", context->sock, handle);
+  debug_print(LL_DEBUG, "server_close_cb: %d %p", context->sock, handle);
   free(context);
 }
 
 
 static void destroy_server_context(server_context_t* context) {
-  debug_print("destroy_server_context: %d %p", context->sock, context);
+  debug_print(LL_DEBUG, "destroy_server_context: %d %p", context->sock, context);
   uv_close((uv_handle_t*) &context->poll_handle, server_close_cb);
 }
 
@@ -510,7 +510,7 @@ static void server_poll_cb(uv_poll_t* handle, int status, int events) {
   uv_os_sock_t sock;
   int r;
 
-  debug_print("server_poll_cb: %d %p %d %d", server_context->sock,  handle, status, events);
+  debug_print(LL_DEBUG, "server_poll_cb: %d %p %d %d", server_context->sock,  handle, status, events);
 
   addr_len = sizeof addr;
   sock = accept(server_context->sock, (struct sockaddr*) &addr, &addr_len);
@@ -530,7 +530,7 @@ static void server_poll_cb(uv_poll_t* handle, int status, int events) {
   ASSERT(r == 0);
 
   if (++server_context->connections == num_clients) {
-    debug_print("close_socket: server %s %p", connection_context->name, server_context);
+    debug_print(LL_DEBUG, "close_socket: server %s %p", connection_context->name, server_context);
     close_socket(server_context->sock);
     destroy_server_context(server_context);
   }
@@ -543,7 +543,7 @@ static void start_server(void) {
   uv_os_sock_t sock;
   int r;
 
-  debug_print("start_server");
+  debug_print(LL_DEBUG, "start_server");
 
   ASSERT(0 == uv_ip4_addr("127.0.0.1", TEST_PORT, &addr));
   sock = create_nonblocking_bound_socket(addr);
@@ -563,7 +563,7 @@ static void start_client(void) {
   struct sockaddr_in server_addr;
   struct sockaddr_in addr;
   int r;
-  debug_print("start_client");
+  debug_print(LL_DEBUG, "start_client");
 
   ASSERT(0 == uv_ip4_addr("127.0.0.1", TEST_PORT, &server_addr));
   ASSERT(0 == uv_ip4_addr("0.0.0.0", 0, &addr));
@@ -592,14 +592,13 @@ static void start_poll_test(void) {
     ASSERT(r == 0);
   }
 #endif
-  debug_print("start_poll_test");
+  debug_print(LL_INFO, "start_poll_test");
 
   start_server();
 
   for (i = 0; i < num_clients; i++)
     start_client();
-
-  debug_print("start_poll_test uv_run");
+  
   r = uv_run(uv_default_loop(), UV_RUN_DEFAULT);
   ASSERT(r == 0);
 

@@ -26,16 +26,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+ 
 #if defined(_MSC_VER) || defined(__MINGW64_VERSION_MAJOR)
 #include <crtdbg.h>
 #endif
 
 #include "uv.h"
-#include "debug.h"
 #include "internal.h"
 #include "handle-inl.h"
 #include "req-inl.h"
 
+#include <shlwapi.h> //PathReplaceExtension
+#include "debug.h"
 
 static uv_loop_t default_loop_struct;
 static uv_loop_t* default_loop_ptr;
@@ -82,6 +84,28 @@ static void uv__crt_invalid_parameter_handler(const wchar_t* expression,
 }
 #endif
 
+#define MAX_WPATH 32768
+
+void uv_init_debug(){
+  wchar_t buffer[MAX_WPATH];
+  DWORD size;
+  int level;
+  
+  size = GetModuleFileNameW(0, buffer, MAX_WPATH);  
+  if(size==MAX_WPATH){
+      debug_print(LL_ERROR, "uv_init_debug: GetModuleFileNameW failed %d", GetLastError());
+      return;
+  }
+  buffer[size]=0;
+
+  if(!PathRenameExtensionW(buffer,L".ini")){
+      debug_print(LL_ERROR, "uv_init_debug: PathRenameExtensionW failed %d", GetLastError());
+      return;
+  }  
+
+  level = GetPrivateProfileIntW(L"Debug",L"Level", LL_INFO, buffer);
+  _uv_init_debug_inner(level);
+}
 
 static void uv_init(void) {
   /* Tell Windows that we will handle critical errors. */
@@ -102,6 +126,9 @@ static void uv_init(void) {
 #if defined(_DEBUG) && (defined(_MSC_VER) || defined(__MINGW64_VERSION_MAJOR))
   _CrtSetReportHook(uv__crt_dbg_report_handler);
 #endif
+
+  //init debug logger  
+  uv_init_debug();
 
   /* Fetch winapi function pointers. This must be done first because other
    * initialization code might need these function pointers to be loaded.
@@ -309,7 +336,7 @@ static void uv_poll(uv_loop_t* loop, DWORD timeout) {
   OVERLAPPED* overlapped;
   uv_req_t* req;
   BOOL rc;
-  debug_print("uv_poll: %d", timeout);
+  debug_print(LL_TRACE, "uv_poll: %d", timeout);
 
   rc = GetQueuedCompletionStatus(loop->iocp,
                             &bytes,
@@ -319,10 +346,10 @@ static void uv_poll(uv_loop_t* loop, DWORD timeout) {
   if (overlapped) {
     /* Package was dequeued */
     if(!rc){
-       debug_print("uv_poll: gqcs error %d %8.8x", GetLastError(), overlapped->Internal);
+       debug_print(LL_WARN, "uv_poll: gqcs error %d %8.8x", GetLastError(), overlapped->Internal);
     }    
     req = uv_overlapped_to_req(overlapped);
-    debug_print("uv_poll: gqcs: type:%d data:%p key:%d bytes:%d internal:%8.8x", req->type, req->data, key, bytes, overlapped->Internal);
+    debug_print(LL_TRACE, "uv_poll: gqcs: type:%d data:%p key:%d bytes:%d internal:%8.8x", req->type, req->data, key, bytes, overlapped->Internal);
     uv_insert_pending_req(loop, req);
 
     /* Some time might have passed waiting for I/O,
@@ -348,7 +375,7 @@ static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
   ULONG count;
   ULONG i;
 
-  debug_print("uv_poll_ex: %d", timeout);
+  debug_print(LL_TRACE, "uv_poll_ex: %d", timeout);
 
   success = pGetQueuedCompletionStatusEx(loop->iocp,
                                          overlappeds,
@@ -361,7 +388,7 @@ static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
     for (i = 0; i < count; i++) {
       /* Package was dequeued */      
       req = uv_overlapped_to_req(overlappeds[i].lpOverlapped);
-      debug_print("uv_poll_ex: gqcsEX: type:%d data:%p key:%d bytes:%d internal:%8.8x", req->type, req->data, overlappeds[i].lpCompletionKey, overlappeds[i].dwNumberOfBytesTransferred, overlappeds[i].Internal);
+      debug_print(LL_TRACE, "uv_poll_ex: gqcsEX: type:%d data:%p key:%d bytes:%d internal:%8.8x", req->type, req->data, overlappeds[i].lpCompletionKey, overlappeds[i].dwNumberOfBytesTransferred, overlappeds[i].Internal);
       
       uv_insert_pending_req(loop, req);
     }
@@ -372,6 +399,7 @@ static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
     uv_update_time(loop);
   } else if (GetLastError() != WAIT_TIMEOUT) {
     /* Serious error */
+    debug_print(LL_WARN, "uv_poll_ex: time:%llu counter:%llu error:%d", loop->time, loop->loop_counter, GetLastError());
     uv_fatal_error(GetLastError(), "GetQueuedCompletionStatusEx");
   } else if (timeout > 0) {
     /* GetQueuedCompletionStatus can occasionally return a little early.
@@ -398,20 +426,22 @@ int uv_run(uv_loop_t *loop, uv_run_mode mode) {
   DWORD timeout;
   int r;
   int ran_pending;
-  void (*poll)(uv_loop_t* loop, DWORD timeout);
-
-  if (pGetQueuedCompletionStatusEx)
-    poll = &uv_poll_ex;
-  else
+  void (*poll)(uv_loop_t* loop, DWORD timeout);  
+  
+  if (pGetQueuedCompletionStatusEx){
+    poll = &uv_poll_ex;    
+  }else{
     poll = &uv_poll;
+  }
 
   r = uv__loop_alive(loop);
   if (!r)
     uv_update_time(loop);
 
+  debug_print(LL_INFO, "uv_run: time: %llu", loop->time);
   while (r != 0 && loop->stop_flag == 0) {
     loop->loop_counter++;
-    debug_print("uv_run loop: counter: %llu ---------------------------------------------------------------------", loop->loop_counter);
+    debug_print(LL_TRACE, "uv_run loop: counter: %llu ---------------------------------------------------------------------", loop->loop_counter);
     uv_update_time(loop);    
     uv_process_timers(loop);
 

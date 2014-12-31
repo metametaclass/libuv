@@ -63,7 +63,7 @@ static void close_server_conn_cb(uv_handle_t* handle) {
 static void on_connection(uv_stream_t* server, int status) {
   uv_tcp_t* conn;
   int r;
-  debug_print("on_connection: %d", status);
+  debug_print(LL_DEBUG, "on_connection: %d", status);
   if (!local_conn_accepted) {
     /* Accept the connection and close it.  Also and close the server. */
     ASSERT(status == 0);
@@ -89,7 +89,7 @@ static void exit_cb(uv_process_t* process,
                     int64_t exit_status,
                     int term_signal) {
   printf("exit_cb\n");
-  debug_print("exit_cb: %llu %d", exit_status, term_signal);
+  debug_print(LL_DEBUG, "exit_cb: %llu %d", exit_status, term_signal);
   exit_cb_called++;
   ASSERT(exit_status == 0);
   uv_close((uv_handle_t*)process, NULL);
@@ -99,7 +99,7 @@ static void exit_cb(uv_process_t* process,
 static void on_alloc(uv_handle_t* handle,
                      size_t suggested_size,
                      uv_buf_t* buf) {
-  debug_print("on_alloc: %d", suggested_size);
+  debug_print(LL_DEBUG, "on_alloc: %d", suggested_size);
   buf->base = (char *)malloc(suggested_size);
   buf->len = suggested_size;
 }
@@ -107,13 +107,13 @@ static void on_alloc(uv_handle_t* handle,
 
 static void close_client_conn_cb(uv_handle_t* handle) {  
   tcp_conn* p = (tcp_conn*)handle->data;
-  debug_print("close_client_conn_cb");
+  debug_print(LL_DEBUG, "close_client_conn_cb");
   free(p);
 }
 
 
 static void connect_cb(uv_connect_t* req, int status) {
-  debug_print("connect_cb");
+  debug_print(LL_DEBUG, "connect_cb");
   uv_close((uv_handle_t*)req->handle, close_client_conn_cb);
 }
 
@@ -124,7 +124,7 @@ static void make_many_connections(void) {
   char* tmp;
   int r, i;
 
-  debug_print("make_many_connections");
+  debug_print(LL_DEBUG, "make_many_connections");
 
   for (i = 0; i < CONN_COUNT; i++) {
     conn = (tcp_conn *) malloc(sizeof(*conn));
@@ -158,7 +158,7 @@ static void on_read(uv_stream_t* handle,
   uv_pipe_t* pipe;
   uv_handle_type pending;
   uv_buf_t outbuf;
-  debug_print("on_read: %d", handle->type);
+  debug_print(LL_DEBUG, "on_read: %d", handle->type);
 
   pipe = (uv_pipe_t*) handle;
 
@@ -298,7 +298,7 @@ void spawn_helper(uv_pipe_t* channel,
   int r;
   uv_stdio_container_t stdio[1];
 
-  debug_print("spawn_helper: %s", helper);
+  debug_print(LL_DEBUG, "spawn_helper: %s", helper);
 
   r = uv_pipe_init(uv_default_loop(), channel, 1);
   ASSERT(r == 0);
@@ -333,7 +333,7 @@ void spawn_helper(uv_pipe_t* channel,
 static void on_tcp_write(uv_write_t* req, int status) {
   ASSERT(status == 0);
   ASSERT(req->handle == (uv_stream_t*)&tcp_connection);
-  debug_print("on_tcp_write: %d", status);
+  debug_print(LL_DEBUG, "on_tcp_write: %d", status);
   tcp_write_cb_called++;
 }
 
@@ -341,14 +341,14 @@ static void on_tcp_write(uv_write_t* req, int status) {
 static void on_read_alloc(uv_handle_t* handle,
                           size_t suggested_size,
                           uv_buf_t* buf) {
-  debug_print("on_read_alloc: %d", suggested_size);
+  debug_print(LL_DEBUG, "on_read_alloc: %d", suggested_size);
   buf->base = (char *)malloc(suggested_size);
   buf->len = suggested_size;
 }
 
 
 static void on_tcp_read(uv_stream_t* tcp, ssize_t nread, const uv_buf_t* buf) {
-  debug_print("on_tcp_read: %d", nread);
+  debug_print(LL_DEBUG, "on_tcp_read: %d", nread);
   ASSERT(nread > 0);
   ASSERT(memcmp("hello again\n", buf->base, nread) == 0);
   ASSERT(tcp == (uv_stream_t*)&tcp_connection);
@@ -371,7 +371,7 @@ static void on_read_connection(uv_stream_t* handle,
   uv_pipe_t* pipe;
   uv_handle_type pending;
 
-  debug_print("on_read_connection: %d", nread);
+  debug_print(LL_DEBUG, "on_read_connection: %d", nread);
 
   pipe = (uv_pipe_t*) handle;
   if (nread == 0) {
@@ -427,7 +427,7 @@ static void on_read_connection(uv_stream_t* handle,
 static int run_ipc_test(const char* helper, uv_read_cb read_cb) {
   uv_process_t process;
   int r;
-  debug_print("run_ipc_test: %s", helper);
+  debug_print(LL_DEBUG, "run_ipc_test: %s", helper);
   spawn_helper(&channel, &process, helper);
   uv_read_start((uv_stream_t*)&channel, on_alloc, read_cb);
 

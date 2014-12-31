@@ -24,6 +24,8 @@
 
 #include "uv.h"
 
+#include "debug.h"
+
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -241,11 +243,13 @@ static int snprintf(char* buf, size_t len, const char* fmt, ...) {
 /* Fully close a loop */
 static void close_walk_cb(uv_handle_t* handle, void* arg) {
   if (!uv_is_closing(handle))
+    debug_print(LL_INFO, "close_walk_cb: close %s",handle->debug_name);
     uv_close(handle, NULL);
 }
 
 UNUSED static void close_loop(uv_loop_t* loop) {
   uv_walk(loop, close_walk_cb, NULL);
+  debug_print(LL_INFO, "close_loop: uv_run");
   uv_run(loop, UV_RUN_DEFAULT);
 }
 

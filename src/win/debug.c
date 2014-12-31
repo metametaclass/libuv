@@ -1,15 +1,32 @@
+#include "uv.h"
+
 #include <stdlib.h>
-//#include <varargs.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <windows.h>
+//#include <windows.h>
+#include "debug.h"
 
-void debug_print(const char *fmt, ...)    
+
+static int g_log_level=30;
+
+
+void _uv_init_debug_inner(int level){
+    g_log_level = level;       
+
+    debug_print(LL_INFO, "_uv_init_debug_inner: %d %s", level, GetCommandLine());
+}
+
+void debug_print(int level, const char *fmt, ...)    
 {
     int n, size=100;
     va_list ap;
-    char* buffer = NULL;
+    char* buffer = NULL;      
 
+    
+    if(level<g_log_level){
+        return;
+    }
+    
     while (1) {
         char* newbuffer = (char*)realloc(buffer, size);
         if(newbuffer==NULL){

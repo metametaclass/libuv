@@ -77,7 +77,7 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   uv_req_t* req;
   AFD_POLL_INFO* afd_poll_info;
   DWORD result;
-  debug_print("uv__fast_poll_submit_poll_req: %d %s %d %d", handle->socket, handle->debug_name, handle->submitted_events_1, handle->submitted_events_2);
+  debug_print(LL_TRACE, "uv__fast_poll_submit_poll_req: %d %s %d %d", handle->socket, handle->debug_name, handle->submitted_events_1, handle->submitted_events_2);
 
   /* Find a yet unsubmitted req to submit. */
   if (handle->submitted_events_1 == 0) {
@@ -115,13 +115,13 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   }
 
   memset(&req->overlapped, 0, sizeof req->overlapped);
-  debug_print("uv__fast_poll_submit_poll_req: events:%x", afd_poll_info->Handles[0].Events);
+  debug_print(LL_TRACE, "uv__fast_poll_submit_poll_req: %s events:%8.8x", handle->debug_name, afd_poll_info->Handles[0].Events);  
 
   result = uv_msafd_poll((SOCKET) handle->peer_socket,
                          afd_poll_info,
                          afd_poll_info,
                          &req->overlapped);
-  debug_print("uv__fast_poll_submit_poll_req: result:%d wsaerror:%d", result, WSAGetLastError());
+  debug_print(LL_TRACE, "uv__fast_poll_submit_poll_req: result:%d wsaerror:%d", result, WSAGetLastError());
   if (result != 0 && WSAGetLastError() != WSA_IO_PENDING) {
     /* Queue this req, reporting an error. */
     SET_REQ_ERROR(req, WSAGetLastError());
@@ -133,7 +133,7 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
 static int uv__fast_poll_cancel_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   AFD_POLL_INFO afd_poll_info;
   DWORD result;
-  debug_print("uv__fast_poll_cancel_poll_req: %d %s", handle->socket, handle->debug_name);
+  debug_print(LL_TRACE, "uv__fast_poll_cancel_poll_req: %d %s", handle->socket, handle->debug_name);
 
   afd_poll_info.Exclusive = TRUE;
   afd_poll_info.NumberOfHandles = 1;
@@ -174,7 +174,7 @@ static void uv__fast_poll_process_poll_req(uv_loop_t* loop, uv_poll_t* handle,
     assert(0);
     return;
   }
-  debug_print("uv__fast_poll_process_poll_req: s:%d n:%s req->overlapped.Internal:%d", handle->socket, handle->debug_name, req->overlapped.Internal);
+  debug_print(LL_TRACE, "uv__fast_poll_process_poll_req: s:%d n:%s req->overlapped.Internal:%d", handle->socket, handle->debug_name, req->overlapped.Internal);
 
   /* Report an error unless the select was just interrupted. */
   if (!REQ_SUCCESS(req)) {
@@ -186,7 +186,7 @@ static void uv__fast_poll_process_poll_req(uv_loop_t* loop, uv_poll_t* handle,
 
   } else if (afd_poll_info->NumberOfHandles >= 1) {
     unsigned char events = 0;
-    debug_print("uv__fast_poll_process_poll_req: events %8.8x", afd_poll_info->Handles[0].Events);
+    debug_print(LL_TRACE, "uv__fast_poll_process_poll_req: events %8.8x", afd_poll_info->Handles[0].Events);
 
     if ((afd_poll_info->Handles[0].Events & (AFD_POLL_RECEIVE |
         AFD_POLL_DISCONNECT | AFD_POLL_ACCEPT | AFD_POLL_ABORT)) != 0) {
@@ -556,11 +556,11 @@ int uv_poll_init_socket(uv_loop_t* loop, uv_poll_t* handle,
   if (peer_socket != INVALID_SOCKET) {
     /* Initialize fast poll specific fields. */
     handle->peer_socket = peer_socket;
-    debug_print("use FAST poll");
+    debug_print(LL_TRACE, "use FAST poll");
   } else {
     /* Initialize slow poll specific fields. */
     handle->flags |= UV_HANDLE_POLL_SLOW;
-    debug_print("use SLOW poll");
+    debug_print(LL_TRACE, "use SLOW poll");
   }
 
   /* Initialize 2 poll reqs. */

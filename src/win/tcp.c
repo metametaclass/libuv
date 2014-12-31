@@ -339,13 +339,13 @@ static void CALLBACK post_completion(void* context, BOOLEAN timed_out) {
 static void CALLBACK post_write_completion(void* context, BOOLEAN timed_out) {
   uv_write_t* req;
   uv_tcp_t* handle;  
-  debug_print("post_write_completion: begin %d", timed_out);
+  debug_print(LL_TRACE, "post_write_completion: begin %d", timed_out);
   req = (uv_write_t*) context;  
   assert(req != NULL);
   handle = (uv_tcp_t*)req->handle;
   assert(handle != NULL);
   assert(!timed_out);
-  debug_print("post_write_completion: %s %s %d", handle->debug_name, req->debug_name, req->type);
+  debug_print(LL_TRACE, "post_write_completion: %s %s %d", handle->debug_name, req->debug_name, req->type);
 
   if (!PostQueuedCompletionStatus(handle->loop->iocp,
                                   req->overlapped.InternalHigh,
@@ -353,7 +353,7 @@ static void CALLBACK post_write_completion(void* context, BOOLEAN timed_out) {
                                   &req->overlapped)) {
     uv_fatal_error(GetLastError(), "PostQueuedCompletionStatus");
   }
-  debug_print("post_write_completion: end");
+  debug_print(LL_TRACE, "post_write_completion: end");
 }
 
 
@@ -493,7 +493,7 @@ static void uv_tcp_queue_read(uv_loop_t* loop, uv_tcp_t* handle) {
                    &flags,
                    &req->overlapped,
                    NULL);
-  debug_print("uv_tcp_queue_read: WSARecv %d %s %d %d", result, req->debug_name, GetLastError(), WSAGetLastError());
+  debug_print(LL_TRACE, "uv_tcp_queue_read: WSARecv %d %s %d %d", result, req->debug_name, GetLastError(), WSAGetLastError());
 
   if (UV_SUCCEEDED_WITHOUT_IOCP(result == 0)) {
     /* Process the req without IOCP. */
@@ -859,11 +859,11 @@ int uv_tcp_write(uv_loop_t* loop,
                    0,
                    &req->overlapped,
                    NULL);
-  debug_print("uv_tcp_write: WSASend %d %s %d %d", result, req->debug_name, GetLastError(), WSAGetLastError());
+  debug_print(LL_TRACE, "uv_tcp_write: WSASend %d %s %d %d", result, req->debug_name, GetLastError(), WSAGetLastError());
 
   if (UV_SUCCEEDED_WITHOUT_IOCP(result == 0)) {
     /* Request completed immediately. */
-    debug_print("uv_tcp_write: success 1");
+    debug_print(LL_TRACE, "uv_tcp_write: success 1");
     req->queued_bytes = 0;
     handle->reqs_pending++;
     handle->write_reqs_pending++;
@@ -871,7 +871,7 @@ int uv_tcp_write(uv_loop_t* loop,
     uv_insert_pending_req(loop, (uv_req_t*) req);
   } else if (UV_SUCCEEDED_WITH_IOCP(result == 0)) {
     /* Request queued by the kernel. */
-    debug_print("uv_tcp_write: queued");
+    debug_print(LL_TRACE, "uv_tcp_write: queued");
     req->queued_bytes = uv__count_bufs(bufs, nbufs);
     handle->reqs_pending++;
     handle->write_reqs_pending++;
@@ -887,7 +887,7 @@ int uv_tcp_write(uv_loop_t* loop,
         !RegisterWaitForSingleObject(&req->wait_handle,
           req->event_handle, post_write_completion, (void*) req,
           INFINITE, WT_EXECUTEINWAITTHREAD | WT_EXECUTEONLYONCE)) {
-      debug_print("uv_tcp_write: RegisterWaitForSingleObject error %d", GetLastError());
+      debug_print(LL_TRACE, "uv_tcp_write: RegisterWaitForSingleObject error %d", GetLastError());
       SET_REQ_ERROR(req, GetLastError());
       uv_insert_pending_req(loop, (uv_req_t*)req);
     }
@@ -1150,7 +1150,7 @@ int uv_tcp_import(uv_tcp_t* tcp, uv__ipc_socket_info_ex* socket_info_ex,
     int tcp_connection) {
   int err;
   SOCKET socket;
-  debug_print("uv_tcp_import: %d", tcp->socket); 
+  debug_print(LL_TRACE, "uv_tcp_import: %d", tcp->socket); 
 
   socket = WSASocketW(FROM_PROTOCOL_INFO,
                              FROM_PROTOCOL_INFO,
@@ -1236,7 +1236,7 @@ int uv_tcp_keepalive(uv_tcp_t* handle, int enable, unsigned int delay) {
 
 int uv_tcp_duplicate_socket(uv_tcp_t* handle, int pid,
     LPWSAPROTOCOL_INFOW protocol_info) {
-  debug_print("uv_tcp_duplicate_socket: %d %d", handle->socket, pid);
+  debug_print(LL_TRACE, "uv_tcp_duplicate_socket: %d %d", handle->socket, pid);
   if (!(handle->flags & UV_HANDLE_CONNECTION)) {
     /*
      * We're about to share the socket with another process.  Because
@@ -1308,7 +1308,7 @@ static int uv_tcp_try_cancel_io(uv_tcp_t* tcp) {
   non_ifs_lsp = (tcp->flags & UV_HANDLE_IPV6) ? uv_tcp_non_ifs_lsp_ipv6 :
                                                 uv_tcp_non_ifs_lsp_ipv4;
 
-  debug_print("uv_tcp_try_cancel_io: %p %d %d", tcp, tcp->socket, non_ifs_lsp);
+  debug_print(LL_TRACE, "uv_tcp_try_cancel_io: %p %d %d", tcp, tcp->socket, non_ifs_lsp);
   /* If there are non-ifs LSPs then try to obtain a base handle for the */
   /* socket. This will always fail on Windows XP/3k. */
   if (non_ifs_lsp) {
@@ -1329,7 +1329,7 @@ static int uv_tcp_try_cancel_io(uv_tcp_t* tcp) {
 
   assert(socket != 0 && socket != INVALID_SOCKET);
 
-  debug_print("uv_tcp_try_cancel_io: CancelIo");
+  debug_print(LL_TRACE, "uv_tcp_try_cancel_io: CancelIo");
   if (!CancelIo((HANDLE) socket)) {
     return GetLastError();
   }
@@ -1341,7 +1341,7 @@ static int uv_tcp_try_cancel_io(uv_tcp_t* tcp) {
 
 void uv_tcp_close(uv_loop_t* loop, uv_tcp_t* tcp) {
   int close_socket = 1;
-  debug_print("uv_tcp_close: %p %d", tcp, tcp->socket);
+  debug_print(LL_TRACE, "uv_tcp_close: %p %d", tcp, tcp->socket);
   if (tcp->flags & UV_HANDLE_READ_PENDING) {
     /* In order for winsock to do a graceful close there must not be any */
     /* any pending reads, or the socket must be shut down for writing */
