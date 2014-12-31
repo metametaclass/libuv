@@ -20,6 +20,7 @@
  */
 
 #include "uv.h"
+#include "debug.h"
 #include "task.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +43,7 @@ static int close_cb_called = 0;
 
 static void close_cb(uv_handle_t* handle) {
   ASSERT(handle != NULL);
+  debug_print(LL_DEBUG, "close_cb: %s", handle->debug_name);
   close_cb_called++;
 }
 
@@ -131,33 +133,48 @@ TEST_IMPL(pipe_getsockname_blocking) {
   size_t len1, len2;
   int r;
 
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: CreatePipe");
   r = CreatePipe(&readh, &writeh, NULL, 65536);
   ASSERT(r != 0);
 
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: uv_pipe_init");
   r = uv_pipe_init(uv_default_loop(), &reader, 0);
   ASSERT(r == 0);
+  reader.debug_name = "reader";
+
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: _open_osfhandle");
   readfd = _open_osfhandle((intptr_t)readh, _O_RDONLY);
   ASSERT(r != -1);
+
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: uv_pipe_open");
   r = uv_pipe_open(&reader, readfd);
   ASSERT(r == 0);
+
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: uv_read_start");
   r = uv_read_start((uv_stream_t*)&reader, NULL, NULL);
   ASSERT(r == 0);
   Sleep(100);
+
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: uv_read_stop");
   r = uv_read_stop((uv_stream_t*)&reader);
   ASSERT(r == 0);
 
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: uv_pipe_getsockname");
   len1 = sizeof buf1;
   r = uv_pipe_getsockname(&reader, buf1, &len1);
   ASSERT(r == 0);
 
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: uv_read_start");
   r = uv_read_start((uv_stream_t*)&reader, NULL, NULL);
   ASSERT(r == 0);
   Sleep(100);
 
   len2 = sizeof buf2;
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: uv_pipe_getsockname");
   r = uv_pipe_getsockname(&reader, buf2, &len2);
   ASSERT(r == 0);
 
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: uv_read_stop");
   r = uv_read_stop((uv_stream_t*)&reader);
   ASSERT(r == 0);
 
@@ -165,13 +182,19 @@ TEST_IMPL(pipe_getsockname_blocking) {
   ASSERT(memcmp(buf1, buf2, len1) == 0);
 
   close_cb_called = 0;
+
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: uv_close");
   uv_close((uv_handle_t*)&reader, close_cb);
 
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: uv_run");
   uv_run(uv_default_loop(), UV_RUN_DEFAULT);
 
   ASSERT(close_cb_called == 1);
 
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: _close(readfd)");
   _close(readfd);
+
+  debug_print(LL_DEBUG, "pipe_getsockname_blocking: CloseHandle(writeh)");
   CloseHandle(writeh);
 #endif
 
