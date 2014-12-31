@@ -350,7 +350,7 @@ static void uv_poll(uv_loop_t* loop, DWORD timeout) {
   if (overlapped) {
     /* Package was dequeued */
     if(!rc){
-       debug_print(LL_WARN, "uv_poll: gqcs error %d %8.8x", GetLastError(), overlapped->Internal);
+        debug_print(LL_DEBUG, "uv_poll: gqcs error %d %8.8x", GetLastError(), overlapped->Internal);
     }    
     req = uv_overlapped_to_req(overlapped);
     debug_print(LL_TRACE, "uv_poll: gqcs: type:%d data:%p key:%d bytes:%d internal:%8.8x", req->type, req->data, key, bytes, overlapped->Internal);
@@ -362,6 +362,7 @@ static void uv_poll(uv_loop_t* loop, DWORD timeout) {
     uv_update_time(loop);
   } else if (GetLastError() != WAIT_TIMEOUT) {
     /* Serious error */
+    debug_print(LL_FATAL, "uv_poll: fatal error time:%llu counter:%llu error:%d", loop->time, loop->loop_counter, GetLastError());
     uv_fatal_error(GetLastError(), "GetQueuedCompletionStatus");
   } else if (timeout > 0) {
     /* GetQueuedCompletionStatus can occasionally return a little early.
@@ -403,7 +404,7 @@ static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
     uv_update_time(loop);
   } else if (GetLastError() != WAIT_TIMEOUT) {
     /* Serious error */
-    debug_print(LL_WARN, "uv_poll_ex: time:%llu counter:%llu error:%d", loop->time, loop->loop_counter, GetLastError());
+    debug_print(LL_WARN, "uv_poll_ex: fatal error time:%llu counter:%llu error:%d", loop->time, loop->loop_counter, GetLastError());
     uv_fatal_error(GetLastError(), "GetQueuedCompletionStatusEx");
   } else if (timeout > 0) {
     /* GetQueuedCompletionStatus can occasionally return a little early.
