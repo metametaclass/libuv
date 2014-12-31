@@ -106,14 +106,14 @@ static void uv__fast_poll_submit_poll_req(uv_loop_t* loop, uv_poll_t* handle) {
   afd_poll_info->Timeout.QuadPart = INT64_MAX;
   afd_poll_info->Handles[0].Handle = (HANDLE) handle->socket;
   afd_poll_info->Handles[0].Status = 0;
-  afd_poll_info->Handles[0].Events = 0;
+  afd_poll_info->Handles[0].Events = AFD_POLL_DISCONNECT | AFD_POLL_ABORT | AFD_POLL_LOCAL_CLOSE;//fix for race deadlock on 2003  https://github.com/piscisaureus/forigor/blob/master/epoll.c
 
   if (handle->events & UV_READABLE) {
     afd_poll_info->Handles[0].Events |= AFD_POLL_RECEIVE |
-        AFD_POLL_DISCONNECT | AFD_POLL_ACCEPT | AFD_POLL_ABORT;
+        AFD_POLL_DISCONNECT | AFD_POLL_ACCEPT | AFD_POLL_ABORT; //0x99 0b10011001
   }
   if (handle->events & UV_WRITABLE) {
-    afd_poll_info->Handles[0].Events |= AFD_POLL_SEND | AFD_POLL_CONNECT_FAIL;
+    afd_poll_info->Handles[0].Events |= AFD_POLL_SEND | AFD_POLL_CONNECT_FAIL; //0x104 0b100000100
   }
 
   memset(&req->overlapped, 0, sizeof req->overlapped);
